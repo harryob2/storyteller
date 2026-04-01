@@ -70,6 +70,7 @@ interface ChapterReport {
   }
 
   chapterSentenceCount: number
+  alignedSentenceCount: number
 
   audioFiles: AudioFileContext[]
 }
@@ -314,7 +315,8 @@ export class Aligner {
         matchedSentence: chapterSentences[endSentence]!,
         nextSentence: chapterSentences[endSentence + 1] ?? null,
       },
-      chapterSentenceCount: sentenceRanges.length,
+      chapterSentenceCount: chapterSentences.length,
+      alignedSentenceCount: sentenceRanges.length,
       audioFiles: sentenceRanges.reduce<AudioFileContext[]>((acc, range) => {
         const existing = acc.find(
           (context) => context.filepath === range.audiofile,

@@ -187,9 +187,52 @@ async function assertAlignSnapshot(
   }
 }
 
+async function testAlignBook(
+  context: it.TestContext,
+  epubPath: string,
+  audiobookPath: string,
+  transcriptionsPath: string,
+) {
+  using epub = await Epub.from(epubPath)
+
+  const audiobookFiles = await readdir(audiobookPath).then((filenames) =>
+    filenames.filter((f) => isAudioFile(f)).map((f) => join(audiobookPath, f)),
+  )
+  const transcriptionFilepaths = await readdir(transcriptionsPath).then(
+    (filenames) =>
+      filenames
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => join(transcriptionsPath, f)),
+  )
+  const transcriptions = await Promise.all(
+    transcriptionFilepaths.map(async (p) => readFile(p, { encoding: "utf-8" })),
+  ).then((contents) =>
+    contents.map(
+      (c) =>
+        JSON.parse(c) as Pick<RecognitionResult, "transcript" | "timeline">,
+    ),
+  )
+
+  const aligner = new Aligner(
+    epub,
+    audiobookFiles,
+    transcriptions,
+    "sentence",
+    undefined,
+    createTestLogger(),
+  )
+
+  const timing = await aligner.alignBook()
+
+  if (!process.env["CI"]) timing.print()
+
+  await assertAlignSnapshot(context, epub, transcriptionFilepaths)
+}
+
 void describe("align", () => {
   void it("should align Peter and Wendy", async (context) => {
-    using epub = await Epub.from(
+    await testAlignBook(
+      context,
       join(
         "src",
         "align",
@@ -198,56 +241,8 @@ void describe("align", () => {
         "text",
         "Peter and Wendy.epub",
       ),
+      join("src", "align", "__fixtures__", "peter-and-wendy", "audio"),
+      join("src", "align", "__fixtures__", "peter-and-wendy", "transcriptions"),
     )
-
-    const audiobookDir = join(
-      "src",
-      "align",
-      "__fixtures__",
-      "peter-and-wendy",
-      "audio",
-    )
-    const audiobookFiles = await readdir(audiobookDir).then((filenames) =>
-      filenames.filter((f) => isAudioFile(f)).map((f) => join(audiobookDir, f)),
-    )
-
-    const transcriptionsDir = join(
-      "src",
-      "align",
-      "__fixtures__",
-      "peter-and-wendy",
-      "transcriptions",
-    )
-    const transcriptionFilepaths = await readdir(transcriptionsDir).then(
-      (filenames) =>
-        filenames
-          .filter((f) => f.endsWith(".json"))
-          .map((f) => join(transcriptionsDir, f)),
-    )
-    const transcriptions = await Promise.all(
-      transcriptionFilepaths.map(async (p) =>
-        readFile(p, { encoding: "utf-8" }),
-      ),
-    ).then((contents) =>
-      contents.map(
-        (c) =>
-          JSON.parse(c) as Pick<RecognitionResult, "transcript" | "timeline">,
-      ),
-    )
-
-    const aligner = new Aligner(
-      epub,
-      audiobookFiles,
-      transcriptions,
-      "sentence",
-      undefined,
-      createTestLogger(),
-    )
-
-    const timing = await aligner.alignBook()
-
-    if (!process.env["CI"]) timing.print()
-
-    await assertAlignSnapshot(context, epub, transcriptionFilepaths)
   })
 })

@@ -53,7 +53,17 @@ export function liftText(root: Root) {
     if (node.isBlock) {
       return !!node.textContent.match(/\S/)
     }
-    if (!(node instanceof TextNode)) return true
+    if (!(node instanceof TextNode)) {
+      if (
+        node.isLeaf &&
+        parent.isBlock &&
+        index === parent.children.length - 1 &&
+        !text.endsWith("\n")
+      ) {
+        text += "\n"
+      }
+      return true
+    }
     if (mapping.map(pos) - mapping.map(lastTextEnd)) {
       mapping.appendMap(
         new StepMap([

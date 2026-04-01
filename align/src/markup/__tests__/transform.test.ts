@@ -2,7 +2,7 @@ import assert from "node:assert"
 import { describe, it } from "node:test"
 
 import { Mark, Node, Root, TextNode } from "../model.ts"
-import { addMark } from "../transform.ts"
+import { addMark, liftText } from "../transform.ts"
 
 void describe("addMark", () => {
   void it("should add a mark", () => {
@@ -106,5 +106,21 @@ void describe("addMark", () => {
         ]),
       ]),
     )
+  })
+})
+
+void describe("liftText", () => {
+  void it("should insert newlines with trailing atoms", () => {
+    const { result } = liftText(
+      new Root([
+        new Node("h1", {}, [
+          new TextNode("Chapter 1."),
+          new Node("br"),
+          new Node("img", { src: "../images/cn.png" }),
+        ]),
+      ]),
+    )
+
+    assert.deepStrictEqual(result, "Chapter 1.\n")
   })
 })

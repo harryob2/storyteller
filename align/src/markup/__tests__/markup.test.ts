@@ -166,6 +166,42 @@ void describe("markupChapter", () => {
     await assertMarkupSnapshot(t, Epub.xhtmlBuilder.build(output) as string)
   })
 
+  void it("can tag sentences with trailing atoms", async (t) => {
+    const input = Epub.xhtmlParser.parse(/* xml */ `
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>The Project Gutenberg eBook of Moby Dick; Or the Whale, by Herman Melville</title>
+  </head>
+  <body>
+    <h1>Chapter 1<br /><img src="../images/cn.png" /></h1>
+    <p>
+        Call me <strong>Ishmael</strong>. Some years ago—never mind how long precisely—having
+        little or no money in my purse, and nothing particular to interest me on
+        shore, I thought I would sail about a little and see the watery part of
+        the world.
+    </p>
+  </body>
+</html>
+`) as ParsedXml
+
+    const { result: segmentation, mapping } = await getXhtmlSegmentation(
+      Epub.getXhtmlBody(input),
+      {},
+    )
+
+    const { markedUp: output } = markupChapter(
+      "chapter_one",
+      input,
+      segmentation,
+      mapping,
+    )
+
+    await assertMarkupSnapshot(t, Epub.xhtmlBuilder.build(output) as string)
+  })
+
   void it("can tag sentences with formatting marks that overlap sentence boundaries", async (t) => {
     const input = Epub.xhtmlParser.parse(/* xml */ `
 <?xml version="1.0" encoding="UTF-8"?>
@@ -354,7 +390,7 @@ void describe("markupChapter", () => {
     await assertMarkupSnapshot(t, Epub.xhtmlBuilder.build(output) as string)
   })
 
-  void it.only("can handle soft page breaks", async (t) => {
+  void it("can handle soft page breaks", async (t) => {
     const input = Epub.xhtmlParser.parse(/* xml */ `
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en-US" xml:lang="en-US">
   <head>
