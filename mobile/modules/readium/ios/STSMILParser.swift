@@ -85,8 +85,15 @@ final class STSMILParser {
                 return (nil, htmlContentStart)
             }
             let nextChapterIndex = publication.readingOrder.index(after: chapterIndex)
-            let nextChapterLink = publication.readingOrder[nextChapterIndex]
-            let startOfNextChapterProgression = try await locateFromPositions(publication, text: nextChapterLink.url())?.locations.totalProgression ?? 1
+            let isLastChapter = nextChapterIndex >= publication.readingOrder.endIndex
+
+            let startOfNextChapterProgression: Double
+            if isLastChapter {
+                startOfNextChapterProgression = 1
+            } else {
+                let nextChapterLink = publication.readingOrder[nextChapterIndex]
+                startOfNextChapterProgression = try await locateFromPositions(publication, text: nextChapterLink.url())?.locations.totalProgression ?? 1
+            }
             let totalProgression = startOfChapterProgression + (progression * (startOfNextChapterProgression - startOfChapterProgression))
             return (
                 Locator(
