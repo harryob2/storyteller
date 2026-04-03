@@ -382,7 +382,7 @@ release-ghost-story:
         done
       fi
     - echo "Uploading to GitLab Generic Package Registry..."
-    - IFS='v' read -ra VERSION_PARTS <<< $CI_COMMIT_TAG
+    - VERSION_PARTS=($(echo "$CI_COMMIT_TAG" | tr 'v' ' '))
     - echo v${VERSION_PARTS[1]}
     - |
       curl --fail-with-body --show-error \
