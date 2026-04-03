@@ -3,7 +3,7 @@ import { dirname as autoDirname, join as autoJoin } from "node:path"
 import { basename, dirname, parse, relative } from "node:path/posix"
 
 import { type SegmentationResult } from "@echogarden/text-segmentation"
-import { enumerate } from "itertools"
+import { enumerate, max } from "itertools"
 import memoize from "memoize"
 import { type Logger } from "pino"
 
@@ -429,23 +429,34 @@ export class Aligner {
   }
 
   narrowToAvailableBoundary(boundary: { start: number; end: number }) {
-    const narrowed = { ...boundary }
-    for (const chapter of this.alignedChapters) {
+    const available: number[] = [
+      -1,
+      ...this.alignedChapters
+        .toSorted((a, b) => a.startOffset - b.startOffset)
+        .flatMap(({ startOffset, endOffset }) => [startOffset, endOffset]),
+      Infinity,
+    ]
+
+    const withinBoundary: [number, number][] = []
+    for (let i = 0; i < available.length - 1; i += 2) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const [start, end] = [available[i]!, available[i + 1]!]
       if (
-        chapter.startOffset > narrowed.start &&
-        chapter.startOffset <= narrowed.end
+        (boundary.start <= start && boundary.end >= start) ||
+        (boundary.start <= end && boundary.end >= end)
       ) {
-        narrowed.end = chapter.startOffset - 1
-      }
-      if (
-        chapter.endOffset < narrowed.end &&
-        chapter.endOffset >= narrowed.start
-      ) {
-        narrowed.start = chapter.endOffset + 1
+        withinBoundary.push([
+          Math.max(boundary.start, start + 1),
+          Math.min(boundary.end, end - 1),
+        ])
       }
     }
 
-    return narrowed
+    const largestBoundary = max(withinBoundary, ([start, end]) => end - start)
+
+    if (!largestBoundary) return { start: boundary.start, end: boundary.end }
+
+    return { start: largestBoundary[0], end: largestBoundary[1] }
   }
 
   async alignBook(onProgress?: ((progress: number) => void) | null) {
