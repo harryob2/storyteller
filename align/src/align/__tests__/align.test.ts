@@ -91,9 +91,7 @@ async function assertAlignSnapshot(
         primaryLocale: new Intl.Locale("en-US"),
       },
     )
-    const chapterSentences = segmentation
-      .map((s) => s.text)
-      .filter((s) => s.match(/\S/))
+    const chapterSentences = segmentation.filter((s) => s.text.match(/\S/))
     for (const par of Epub.getXmlChildren(seq)) {
       newSnapshot += `\n`
       const text = Epub.findXmlChildByName("text", Epub.getXmlChildren(par))
@@ -106,7 +104,7 @@ async function assertAlignSnapshot(
       const sentenceId = textSrc.match(/[0-9]+$/)?.[0]
       if (sentenceId === undefined) continue
 
-      const textSentence = chapterSentences[parseInt(sentenceId)]
+      const textSentence = chapterSentences[parseInt(sentenceId)]?.text
       if (!textSentence) continue
       newSnapshot += `Text:  ${textSentence.replace(/\n/, "")}\n`
 
@@ -117,8 +115,7 @@ async function assertAlignSnapshot(
       const audioEnd = audio[":@"]?.["@_clipEnd"]
       if (!audioStart || !audioEnd) continue
 
-      // Subtract a bit in case this got bumped up by the expander
-      const audioStartTime = parseFloat(audioStart.slice(0, -1)) - 0.002
+      const audioStartTime = parseFloat(audioStart.slice(0, -1))
       const audioEndTime = parseFloat(audioEnd.slice(0, -1))
 
       const audioFilename = posixBasename(audioSrc, extname(audioSrc))
@@ -189,6 +186,7 @@ async function assertAlignSnapshot(
 
 async function testAlignBook(
   context: it.TestContext,
+  granularity: "sentence" | "word",
   epubPath: string,
   audiobookPath: string,
   transcriptionsPath: string,
@@ -217,7 +215,7 @@ async function testAlignBook(
     epub,
     audiobookFiles,
     transcriptions,
-    "sentence",
+    granularity,
     undefined,
     createTestLogger(),
   )
@@ -233,6 +231,24 @@ void describe("align", () => {
   void it("should align Peter and Wendy", async (context) => {
     await testAlignBook(
       context,
+      "sentence",
+      join(
+        "src",
+        "align",
+        "__fixtures__",
+        "peter-and-wendy",
+        "text",
+        "Peter and Wendy.epub",
+      ),
+      join("src", "align", "__fixtures__", "peter-and-wendy", "audio"),
+      join("src", "align", "__fixtures__", "peter-and-wendy", "transcriptions"),
+    )
+  })
+
+  void it.skip("should align Peter and Wendy (word-level)", async (context) => {
+    await testAlignBook(
+      context,
+      "word",
       join(
         "src",
         "align",

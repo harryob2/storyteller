@@ -1,7 +1,9 @@
+import { type SegmentationResult } from "@echogarden/text-segmentation"
 import { enumerate } from "itertools"
 import { runes } from "runes2"
 
 import { type TimelineEntry } from "@storyteller-platform/ghost-story"
+import { type Mapping } from "@storyteller-platform/transliteration"
 
 import { getTrackDuration } from "../common/ffmpeg.ts"
 import { errorAlign } from "../errorAlign/errorAlign.ts"
@@ -20,18 +22,24 @@ export type StorytellerTranscription = {
 
 export type SentenceRange = {
   id: number
+  chapterId: string
+  start: number
+  end: number
+  audiofile: string
+}
+
+export type WordRange = {
+  id: number
+  sentenceId: number
   start: number
   end: number
   audiofile: string
 }
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-function findStartTimestamp(
-  matchStartIndex: number,
-  transcription: StorytellerTranscription,
-) {
-  const entry = transcription.timeline.find(
-    (entry) => (entry.endOffsetUtf16 ?? 0) > matchStartIndex,
+function findStartTimestamp(matchStartIndex: number, timeline: MappedTimeline) {
+  const entry = timeline.find(
+    (entry) => entry.mappedEndOffsetUtf16 > matchStartIndex,
   )
   if (!entry) return null
   return {
@@ -43,10 +51,10 @@ function findStartTimestamp(
 
 export function findEndTimestamp(
   matchEndIndex: number,
-  transcription: StorytellerTranscription,
+  timeline: MappedTimeline,
 ) {
-  const entry = transcription.timeline.findLast(
-    (entry) => (entry.startOffsetUtf16 ?? 0) < matchEndIndex,
+  const entry = timeline.findLast(
+    (entry) => entry.mappedStartOffsetUtf16 < matchEndIndex,
   )
   if (!entry) return null
   return {
@@ -162,25 +170,39 @@ function errorAlignWithNarrowing(
   return { alignments, slice: [slice[0] + narrowed[0], slice[0] + narrowed[1]] }
 }
 
-export async function getSentenceRanges(
+export function mapTranscriptionTimeline(
   transcription: StorytellerTranscription,
-  sentences: string[],
+  mapping: Mapping,
+) {
+  return transcription.timeline.map((entry) => ({
+    ...entry,
+    mappedStartOffsetUtf16: mapping.map(entry.startOffsetUtf16 ?? 0, 1),
+    mappedEndOffsetUtf16: mapping.map(entry.endOffsetUtf16 ?? 0, -1),
+  }))
+}
+
+export type MappedTimeline = ReturnType<typeof mapTranscriptionTimeline>
+
+export async function getSentenceRanges(
+  transcriptionText: string,
+  mappedTimeline: MappedTimeline,
+  sentences: SegmentationResult["sentences"],
+  chapterId: string,
   chapterOffset: number,
   chapterEndOffset: number,
+  granularity: "sentence" | "word",
   locale: Intl.Locale,
 ) {
   const sentenceRanges: SentenceRange[] = []
-  const fullTranscript = transcription.transcript
-  const chapterTranscript = fullTranscript.slice(
+  const wordRanges: WordRange[][] = []
+  const slugifiedChapterTranscript = transcriptionText.slice(
     chapterOffset,
     chapterEndOffset,
   )
-  const { result: slugifiedChapterTranscript, mapping: transcriptMapping } =
-    await slugify(chapterTranscript, locale)
 
   const slugifiedChapterSentences: string[] = []
   for (const s of sentences) {
-    const { result } = await slugify(s, locale)
+    const { result } = await slugify(s.text, locale)
     slugifiedChapterSentences.push(result)
   }
 
@@ -268,33 +290,24 @@ export async function getSentenceRanges(
       if (score > 0) {
         const start = findStartTimestamp(
           chapterOffset +
-            transcriptMapping
-              .invert()
-              .map(
-                slugifiedChapterTranscriptWindowStartIndex +
-                  currentTranscriptWindowIndex,
-                1,
-              ),
-          transcription,
+            slugifiedChapterTranscriptWindowStartIndex +
+            currentTranscriptWindowIndex,
+          mappedTimeline,
         )
 
         chapterTranscriptEndIndex =
           chapterOffset +
-          transcriptMapping
-            .invert()
-            .map(
-              slugifiedChapterTranscriptWindowStartIndex +
-                currentTranscriptWindowIndex +
-                sentenceLengthInSlugifiedTranscript,
-              -1,
-            )
+          slugifiedChapterTranscriptWindowStartIndex +
+          currentTranscriptWindowIndex +
+          sentenceLengthInSlugifiedTranscript
 
-        const end = findEndTimestamp(chapterTranscriptEndIndex, transcription)
+        const end = findEndTimestamp(chapterTranscriptEndIndex, mappedTimeline)
 
         if (start && end) {
           if (start.audiofile !== end.audiofile) {
             sentenceRanges.push({
               id: j + chapterSentenceIndex + slice[0],
+              chapterId,
               start: 0,
               audiofile: end.audiofile,
               end: end.end,
@@ -302,11 +315,72 @@ export async function getSentenceRanges(
           } else {
             sentenceRanges.push({
               id: j + chapterSentenceIndex + slice[0],
+              chapterId,
               start: start.start,
               audiofile: start.audiofile,
               end: end.end,
             })
           }
+        }
+
+        if (granularity === "word") {
+          const sentenceSegmentation =
+            sentences[j + chapterSentenceIndex + slice[0]]!
+          const words: string[] = []
+          for (const entry of sentenceSegmentation.words.entries) {
+            if (!entry.text.match(/\S/)) continue
+            const { result } = await slugify(entry.text, locale)
+            words.push(result)
+          }
+
+          let currentTranscriptWordWindowIndex = currentTranscriptWindowIndex
+          let sentenceAlignmentIndex = 0
+          const perSentenceWordRanges: WordRange[] = []
+          for (const [k, word] of enumerate(words)) {
+            if (!word) continue
+            const { alignments: wordAlignments } = getAlignmentsForSentence(
+              word,
+              sentenceAlignments.slice(sentenceAlignmentIndex),
+            )
+            const wordLengthInSlugifiedTranscript = wordAlignments
+              .filter((a) => a.opType !== "DELETE")
+              .map((a) => a.hyp!)
+              .join("-").length
+            const start = findStartTimestamp(
+              chapterOffset +
+                slugifiedChapterTranscriptWindowStartIndex +
+                currentTranscriptWordWindowIndex,
+              mappedTimeline,
+            )
+            const end = findEndTimestamp(
+              chapterOffset +
+                slugifiedChapterTranscriptWindowStartIndex +
+                currentTranscriptWordWindowIndex +
+                wordLengthInSlugifiedTranscript,
+              mappedTimeline,
+            )
+
+            if (start && end) {
+              perSentenceWordRanges.push({
+                id: k,
+                sentenceId: j + chapterSentenceIndex + slice[0],
+                start: end.audiofile === start.audiofile ? start.start : 0,
+                audiofile: end.audiofile,
+                end: end.end,
+              })
+            }
+
+            sentenceAlignmentIndex += wordAlignments.length
+            currentTranscriptWordWindowIndex += wordLengthInSlugifiedTranscript
+            if (
+              slugifiedChapterTranscriptWindow[
+                currentTranscriptWordWindowIndex
+              ] === "-"
+            ) {
+              currentTranscriptWordWindowIndex++
+            }
+          }
+          wordRanges.push(perSentenceWordRanges)
         }
       }
 
@@ -331,6 +405,7 @@ export async function getSentenceRanges(
 
   return {
     sentenceRanges,
+    wordRanges,
     transcriptionOffset: chapterTranscriptEndIndex,
     firstFoundSentence,
     lastFoundSentence,
@@ -356,92 +431,76 @@ async function getLargestGap(
 
 export async function interpolateSentenceRanges(
   sentenceRanges: SentenceRange[],
-  lastSentenceRange: SentenceRange | null,
+  chapterSentenceCounts: Record<string, number>,
 ) {
   const interpolated: SentenceRange[] = []
-  const [first, ...rest] = sentenceRanges
-  if (!first) return interpolated
-  if (first.id !== 0) {
-    const count = first.id
-    const crossesAudioBoundary =
-      !lastSentenceRange || first.audiofile !== lastSentenceRange.audiofile
-    let diff = crossesAudioBoundary
-      ? first.start
-      : first.start - lastSentenceRange.end
 
-    // Sometimes the transcription may entirely miss a short sentence.
-    // If it does, allocate a short clip for it and continue
-    if (!crossesAudioBoundary && diff <= 0) {
-      diff = 0.25
-      lastSentenceRange.end = first.start - diff
-    }
-    const interpolatedLength = diff / count
-    const start = crossesAudioBoundary ? 0 : lastSentenceRange.end
-
-    for (let i = 0; i < count; i++) {
-      interpolated.push({
-        id: i,
-        start: start + interpolatedLength * i,
-        end: start + interpolatedLength * (i + 1),
-        audiofile: first.audiofile,
-      })
+  for (let i = 0; i < sentenceRanges.length; i++) {
+    const endRange = sentenceRanges[i]!
+    const startRange = sentenceRanges[i - 1] ?? {
+      id: 0,
+      audiofile: endRange.audiofile,
+      chapterId: endRange.chapterId,
+      start: 0,
+      end: 0,
     }
 
-    interpolated.push(first)
-  } else {
-    rest.unshift(first)
-  }
-  for (const sentenceRange of rest) {
-    if (interpolated.length === 0) {
-      interpolated.push(sentenceRange)
-      continue
-    }
+    const newChapter = startRange.chapterId !== endRange.chapterId
+    const newAudiofile = startRange.audiofile !== endRange.audiofile
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const lastSentenceRange = interpolated[interpolated.length - 1]!
+    const count = newChapter
+      ? chapterSentenceCounts[startRange.chapterId]! - startRange.id - 1
+      : endRange.id - startRange.id - 1
 
-    const count = sentenceRange.id - lastSentenceRange.id - 1
     if (count === 0) {
-      interpolated.push(sentenceRange)
+      interpolated.push(endRange)
       continue
     }
-
-    const crossesAudioBoundary =
-      sentenceRange.audiofile !== lastSentenceRange.audiofile
 
     // If we missed the first or last sentence of an audio track,
     // assume that it belongs to whichever audio track has a larger
     // gap
     // eslint-disable-next-line prefer-const
-    let [diff, audiofile] = crossesAudioBoundary
-      ? await getLargestGap(lastSentenceRange, sentenceRange)
-      : [sentenceRange.start - lastSentenceRange.end, sentenceRange.audiofile]
+    let [diff, audiofile] = newAudiofile
+      ? await getLargestGap(startRange, endRange)
+      : [endRange.start - startRange.end, endRange.audiofile]
 
     // Sometimes the transcription may entirely miss a short sentence.
     // If it does, allocate a short clip for it and continue
     if (diff <= 0) {
-      if (crossesAudioBoundary) {
-        const rangeLength = sentenceRange.end - sentenceRange.start
+      if (newAudiofile) {
+        const rangeLength = endRange.end - endRange.start
         diff = rangeLength < 0.5 ? rangeLength / 2 : 0.25
-        sentenceRange.start = diff
+        endRange.start = diff
       } else {
         diff = 0.25
-        lastSentenceRange.end = sentenceRange.start - diff
+        startRange.end = startRange.start - diff
       }
     }
+
     const interpolatedLength = diff / count
-    const start = crossesAudioBoundary ? 0 : lastSentenceRange.end
+    const start = newAudiofile ? 0 : startRange.end
 
     for (let i = 0; i < count; i++) {
+      let id = startRange.id + i + 1
+      let chapterId = startRange.chapterId
+      if (
+        newChapter &&
+        i > chapterSentenceCounts[startRange.chapterId]! - startRange.id
+      ) {
+        id = i
+        chapterId = endRange.chapterId
+      }
       interpolated.push({
-        id: lastSentenceRange.id + i + 1,
+        id,
+        chapterId,
         start: start + interpolatedLength * i,
         end: start + interpolatedLength * (i + 1),
         audiofile: audiofile,
       })
     }
 
-    interpolated.push(sentenceRange)
+    interpolated.push(endRange)
   }
 
   return interpolated
@@ -453,8 +512,10 @@ export async function interpolateSentenceRanges(
  * about these, so we nudge them out a bit to make sure that they're
  * not truly equal.
  */
-export function expandEmptySentenceRanges(sentenceRanges: SentenceRange[]) {
-  const expandedRanges: SentenceRange[] = []
+export function expandEmptySentenceRanges<
+  Range extends SentenceRange | WordRange,
+>(sentenceRanges: Range[]) {
+  const expandedRanges: Range[] = []
   for (const sentenceRange of sentenceRanges) {
     const previousSentenceRange = expandedRanges[expandedRanges.length - 1]
     if (!previousSentenceRange) {
@@ -476,6 +537,29 @@ export function expandEmptySentenceRanges(sentenceRanges: SentenceRange[]) {
     expandedRanges.push(expanded)
   }
   return expandedRanges
+}
+
+export async function collapseSentenceRangeGaps(
+  sentenceRanges: SentenceRange[],
+) {
+  const collapsed: SentenceRange[] = []
+  for (const [i, sentenceRange] of enumerate(sentenceRanges)) {
+    const nextSentence = sentenceRanges[i + 1]
+    const prevSentence = sentenceRanges[i - 1]
+
+    const start =
+      prevSentence?.audiofile !== sentenceRange.audiofile
+        ? 0
+        : sentenceRange.start
+    const end =
+      nextSentence?.audiofile !== sentenceRange.audiofile
+        ? await getTrackDuration(sentenceRange.audiofile)
+        : nextSentence.start
+
+    collapsed.push({ ...sentenceRange, start, end })
+  }
+
+  return collapsed
 }
 
 export function getChapterDuration(sentenceRanges: SentenceRange[]) {

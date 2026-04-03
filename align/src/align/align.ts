@@ -2,6 +2,8 @@ import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises"
 import { dirname as autoDirname, join as autoJoin } from "node:path"
 import { basename, dirname, parse, relative } from "node:path/posix"
 
+import { type SegmentationResult } from "@echogarden/text-segmentation"
+import { enumerate } from "itertools"
 import memoize from "memoize"
 import { type Logger } from "pino"
 
@@ -16,18 +18,21 @@ import {
   createTiming,
 } from "@storyteller-platform/ghost-story"
 import { type RecognitionResult } from "@storyteller-platform/ghost-story/recognition"
-import { type Mapping } from "@storyteller-platform/transliteration"
 
 import { getTrackDuration } from "../common/ffmpeg.ts"
 import { getXhtmlSegmentation } from "../markup/segmentation.ts"
 
 import {
+  type MappedTimeline,
   type SentenceRange,
   type StorytellerTranscription,
+  type WordRange,
+  collapseSentenceRangeGaps,
   expandEmptySentenceRanges,
   getChapterDuration,
   getSentenceRanges,
   interpolateSentenceRanges,
+  mapTranscriptionTimeline,
 } from "./getSentenceRanges.ts"
 import { findBoundaries } from "./search.ts"
 import { slugify } from "./slugify.ts"
@@ -36,6 +41,7 @@ type AlignedChapter = {
   chapter: ManifestItem
   xml: ParsedXml
   sentenceRanges: SentenceRange[]
+  wordRanges: WordRange[][]
   startOffset: number
   endOffset: number
 }
@@ -206,11 +212,14 @@ export class Aligner {
       },
     )
 
-    return segmentation.map((s) => s.text).filter((s) => s.match(/\S/))
+    return segmentation.filter((s) => s.text.match(/\S/))
   }
 
   private async writeAlignedChapter(alignedChapter: AlignedChapter) {
-    const { chapter, sentenceRanges, xml } = alignedChapter
+    const { chapter, sentenceRanges, wordRanges, xml } = alignedChapter
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const wordRangeMap = new Map(wordRanges.map((w) => [w[0]!.sentenceId, w]))
 
     const audiofiles = Array.from(
       new Set(sentenceRanges.map(({ audiofile }) => audiofile)),
@@ -254,7 +263,12 @@ export class Aligner {
         href: `MediaOverlays/${chapterStem}.smil`,
         mediaType: "application/smil+xml",
       },
-      createMediaOverlay(chapter, sentenceRanges),
+      createMediaOverlay(
+        chapter,
+        this.granularity,
+        sentenceRanges,
+        wordRangeMap,
+      ),
       "xml",
     )
 
@@ -279,7 +293,7 @@ export class Aligner {
 
   private addChapterReport(
     chapter: ManifestItem,
-    chapterSentences: string[],
+    chapterSentences: SegmentationResult["sentences"],
     sentenceRanges: SentenceRange[],
     startSentence: number,
     endSentence: number,
@@ -303,17 +317,17 @@ export class Aligner {
       },
       firstMatchedSentenceId: startSentence,
       firstMatchedSentenceContext: {
-        prevSentence: chapterSentences[startSentence - 1] ?? null,
+        prevSentence: chapterSentences[startSentence - 1]?.text ?? null,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        matchedSentence: chapterSentences[startSentence]!,
-        nextSentence: chapterSentences[startSentence + 1] ?? null,
+        matchedSentence: chapterSentences[startSentence]!.text,
+        nextSentence: chapterSentences[startSentence + 1]?.text ?? null,
       },
       lastMatchedSentenceId: endSentence,
       lastMatchedSentenceContext: {
-        prevSentence: chapterSentences[endSentence - 1] ?? null,
+        prevSentence: chapterSentences[endSentence - 1]?.text ?? null,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        matchedSentence: chapterSentences[endSentence]!,
-        nextSentence: chapterSentences[endSentence + 1] ?? null,
+        matchedSentence: chapterSentences[endSentence]!.text,
+        nextSentence: chapterSentences[endSentence + 1]?.text ?? null,
       },
       chapterSentenceCount: chapterSentences.length,
       alignedSentenceCount: sentenceRanges.length,
@@ -337,10 +351,11 @@ export class Aligner {
 
   private async alignChapter(
     chapterId: string,
+    transcriptionText: string,
     transcriptionOffset: number,
     transcriptionEndOffset: number,
     locale: Intl.Locale,
-    mapping: Mapping,
+    mappedTimeline: MappedTimeline,
   ) {
     const timing = createTiming()
 
@@ -361,14 +376,18 @@ export class Aligner {
     timing.start("align sentences")
     const {
       sentenceRanges,
+      wordRanges,
       transcriptionOffset: endTranscriptionOffset,
       firstFoundSentence,
       lastFoundSentence,
     } = await getSentenceRanges(
-      this.transcription,
+      transcriptionText,
+      mappedTimeline,
       chapterSentences,
+      chapterId,
       transcriptionOffset,
       transcriptionEndOffset,
+      this.granularity,
       locale,
     )
     timing.end("align sentences")
@@ -388,8 +407,9 @@ export class Aligner {
       chapter,
       xml: chapterXml,
       sentenceRanges,
-      startOffset: mapping.map(transcriptionOffset),
-      endOffset: mapping.map(endTranscriptionOffset, -1),
+      wordRanges,
+      startOffset: transcriptionOffset,
+      endOffset: endTranscriptionOffset,
     })
 
     this.addChapterReport(
@@ -444,6 +464,8 @@ export class Aligner {
       locale,
     )
 
+    const mappedTimeline = mapTranscriptionTimeline(this.transcription, mapping)
+
     for (let index = 0; index < spine.length; index++) {
       onProgress?.(index / spine.length)
 
@@ -462,7 +484,7 @@ export class Aligner {
       const slugifiedChapterSentences: string[] = []
       for (const chapterSentence of chapterSentences) {
         slugifiedChapterSentences.push(
-          (await slugify(chapterSentence, locale)).result,
+          (await slugify(chapterSentence.text, locale)).result,
         )
       }
       if (chapterSentences.length === 0) {
@@ -472,7 +494,7 @@ export class Aligner {
       if (
         chapterSentences.length < 2 &&
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        chapterSentences[0]!.split(" ").length < 4
+        chapterSentences[0]!.words.length < 4
       ) {
         this.logger?.info(
           `Chapter #${index} is fewer than four words; skipping`,
@@ -497,18 +519,13 @@ export class Aligner {
         continue
       }
 
-      const transcriptionOffset = mapping.invert().map(Math.max(start, 0), -1)
-
-      const endOffset = mapping
-        .invert()
-        .map(Math.min(end, transcriptionText.length), 1)
-
       const result = await this.alignChapter(
         chapterId,
-        transcriptionOffset,
-        endOffset,
+        transcriptionText,
+        Math.max(start, 0),
+        Math.min(end, transcriptionText.length),
         locale,
-        mapping,
+        mappedTimeline,
       )
 
       this.timing.add(result.timing.summary())
@@ -531,16 +548,41 @@ export class Aligner {
       return firstAudiofileIndexA - firstAudiofileIndexB
     })
 
-    let lastSentenceRange: SentenceRange | null = null
+    const sentenceRanges: SentenceRange[] = []
+    const chapterSentenceCounts: Record<string, number> = {}
+
     for (const alignedChapter of audioOrderedChapters) {
-      const interpolated = await interpolateSentenceRanges(
-        alignedChapter.sentenceRanges,
-        lastSentenceRange,
+      sentenceRanges.push(...alignedChapter.sentenceRanges)
+
+      const sentences = await this.getChapterSentences(
+        alignedChapter.chapter.id,
       )
-      const expanded = expandEmptySentenceRanges(interpolated)
-      alignedChapter.sentenceRanges = expanded
-      lastSentenceRange = expanded.at(-1) ?? null
+      chapterSentenceCounts[alignedChapter.chapter.id] = sentences.length
+    }
+
+    const interpolated = await interpolateSentenceRanges(
+      sentenceRanges,
+      chapterSentenceCounts,
+    )
+
+    const expanded = expandEmptySentenceRanges(interpolated)
+    const collapsed = await collapseSentenceRangeGaps(expanded)
+
+    let collapsedStart = 0
+    for (const alignedChapter of audioOrderedChapters) {
+      const sentences = await this.getChapterSentences(
+        alignedChapter.chapter.id,
+      )
+      const finalSentenceRanges = collapsed.slice(
+        collapsedStart,
+        collapsedStart + sentences.length - 1,
+      )
+      alignedChapter.sentenceRanges = finalSentenceRanges
+      for (const [i, wordRanges] of enumerate(alignedChapter.wordRanges)) {
+        alignedChapter.wordRanges[i] = expandEmptySentenceRanges(wordRanges)
+      }
       await this.writeAlignedChapter(alignedChapter)
+      collapsedStart += sentences.length - 1
     }
 
     await this.epub.addMetadata({
@@ -573,7 +615,9 @@ export class Aligner {
 
 function createMediaOverlay(
   chapter: ManifestItem,
+  granularity: "sentence" | "word",
   sentenceRanges: SentenceRange[],
+  wordRanges: Map<number, WordRange[]>,
 ) {
   return [
     Epub.createXmlElement(
@@ -592,24 +636,58 @@ function createMediaOverlay(
               "epub:textref": `../${chapter.href}`,
               "epub:type": "chapter",
             },
-            sentenceRanges.map((sentenceRange) =>
-              Epub.createXmlElement(
-                "par",
+            sentenceRanges.map((sentenceRange) => {
+              if (
+                granularity === "sentence" ||
+                !wordRanges.has(sentenceRange.id)
+              ) {
+                return Epub.createXmlElement(
+                  "par",
+                  {
+                    id: `${chapter.id}-s${sentenceRange.id}`,
+                  },
+                  [
+                    Epub.createXmlElement("text", {
+                      src: `../${chapter.href}#${chapter.id}-s${sentenceRange.id}`,
+                    }),
+                    Epub.createXmlElement("audio", {
+                      src: `../Audio/${basename(sentenceRange.audiofile)}`,
+                      clipBegin: `${sentenceRange.start.toFixed(3)}s`,
+                      clipEnd: `${sentenceRange.end.toFixed(3)}s`,
+                    }),
+                  ],
+                )
+              }
+
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const words = wordRanges.get(sentenceRange.id)!
+              return Epub.createXmlElement(
+                "seq",
                 {
                   id: `${chapter.id}-s${sentenceRange.id}`,
+                  "epub:type": "text-range-small",
+                  "epub:textref": `../${chapter.href}#${chapter.id}-s${sentenceRange.id}`,
                 },
-                [
-                  Epub.createXmlElement("text", {
-                    src: `../${chapter.href}#${chapter.id}-s${sentenceRange.id}`,
-                  }),
-                  Epub.createXmlElement("audio", {
-                    src: `../Audio/${basename(sentenceRange.audiofile)}`,
-                    clipBegin: `${sentenceRange.start.toFixed(3)}s`,
-                    clipEnd: `${sentenceRange.end.toFixed(3)}s`,
-                  }),
-                ],
-              ),
-            ),
+                words.map((word) =>
+                  Epub.createXmlElement(
+                    "par",
+                    {
+                      id: `${chapter.id}-s${sentenceRange.id}-w${word.id}`,
+                    },
+                    [
+                      Epub.createXmlElement("text", {
+                        src: `../${chapter.href}#${chapter.id}-s${sentenceRange.id}-w${word.id}`,
+                      }),
+                      Epub.createXmlElement("audio", {
+                        src: `../Audio/${basename(word.audiofile)}`,
+                        clipBegin: `${word.start.toFixed(3)}s`,
+                        clipEnd: `${word.end.toFixed(3)}s`,
+                      }),
+                    ],
+                  ),
+                ),
+              )
+            }),
           ),
         ]),
       ],

@@ -56,7 +56,7 @@
     "@storyteller-platform/audiobook": "workspace:^",
     "@storyteller-platform/epub": "workspace:^",
     "@storyteller-platform/ghost-story": "workspace:^",
-    "@storyteller-platform/transliteration": "^3.1.1",
+    "@storyteller-platform/transliteration": "^3.1.2",
     "chalk": "^5.4.1",
     "cli-progress": "^3.12.0",
     "esbuild": "^0.27.3",

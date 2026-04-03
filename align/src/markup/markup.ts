@@ -67,6 +67,7 @@ export async function markup(
     const { markedUp, timing: chapterTiming } = markupChapter(
       chapterId,
       chapterXml,
+      options.granularity ?? "sentence",
       segmentation,
       mapping,
     )
@@ -83,6 +84,7 @@ export async function markup(
 export function markupChapter(
   chapterId: string,
   chapterXml: ParsedXml,
+  granularity: "word" | "sentence",
   segmentation: Sentence[],
   mapping: Mapping,
 ) {
@@ -106,6 +108,24 @@ export function markupChapter(
     let pos = 0
     let i = 0
     for (const sentence of segmentation) {
+      if (granularity === "word") {
+        let j = 0
+        let wordPos = pos
+        for (const word of sentence.words.entries) {
+          if (word.text.match(/\S/)) {
+            root = addMark(
+              root,
+              mapping.invert().map(wordPos),
+              mapping
+                .invert()
+                .map(wordPos + word.text.replace(/\n$/, "").length, -1),
+              new Mark("span", { id: `${chapterId}-s${i}-w${j}` }),
+            )
+            j++
+          }
+          wordPos += word.text.replace(/\n$/, "").length
+        }
+      }
       if (sentence.text.match(/\S/)) {
         root = addMark(
           root,
@@ -117,7 +137,6 @@ export function markupChapter(
         )
         i++
       }
-
       pos += sentence.text.replace(/\n$/, "").length
     }
     taggedBody["body"] = serializeDom(root)
