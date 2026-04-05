@@ -533,6 +533,30 @@ release-align:
     paths:
       - okmain/okmain.*.node
 
+.okmain-build-linux-musl-base:
+  stage: build-base
+  image: node:24-alpine
+  extends: .okmain-tag-rules
+  before_script:
+    - apk add --no-cache build-base curl pkgconf
+    - npm i -g corepack
+    - corepack enable
+    - corepack prepare yarn@4.12.0 --activate
+    - curl https://sh.rustup.rs -sSf --output rustup.sh
+    - sh rustup.sh -y --profile minimal --default-toolchain stable
+    - rm rustup.sh
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustc --version
+    - yarn workspaces focus @storyteller-platform/okmain
+  script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup target add "$TARGET"
+    - yarn workspace @storyteller-platform/okmain napi build --target "$TARGET"
+      --platform --release
+  artifacts:
+    paths:
+      - okmain/okmain.*.node
+
 .okmain-build-macos-base:
   stage: build-base
   extends: .okmain-tag-rules
@@ -628,13 +652,13 @@ build-okmain-linux-arm64-gnu:
     TARGET: aarch64-unknown-linux-gnu
 
 build-okmain-linux-x64-musl:
-  extends: .okmain-build-linux-base
+  extends: .okmain-build-linux-musl-base
   tags: [saas-linux-large-amd64]
   variables:
     TARGET: x86_64-unknown-linux-musl
 
 build-okmain-linux-arm64-musl:
-  extends: .okmain-build-linux-base
+  extends: .okmain-build-linux-musl-base
   tags: [saas-linux-large-arm64]
   variables:
     TARGET: aarch64-unknown-linux-musl
