@@ -1,9 +1,9 @@
 {
   "Layout": {
     "description": "Een eenvoudig hulpmiddel voor het synchroniseren van audiobooks en ebooks",
-    "title": "Storyteller",
-    "logout": "Uitloggen"
+    "title": "Storyteller"
   },
+
   "LoginPage": {
     "welcomeBack": "Welkom terug!",
     "title": "Inloggen",
@@ -20,14 +20,217 @@
   "HomePage": {
     "title": "Start"
   },
-  "BooksPage": {
-    "title": "Boeken"
-  },
+
   "CollectionsPage": {
     "title": "Verzamelingen"
   },
-  "SeriesPage": {
-    "title": "Series"
+  "BooksPage": {
+    "title": "Boeken"
+  },
+  "SettingsPage": {
+    "title": "Instellingen",
+    "breadcrumb": "Instellingen",
+    "saveSettings": "Opslaan",
+    "exportSettings": "Exporteer instellingen als JSON",
+    "lockedSettings": "Sommige instellingen worden via een configuratiebestand beheerd en kunnen hier niet gewijzigd worden.",
+    "lockedSettingTooltip": "Deze instelling kan niet worden gewijzigd omdat het via wordt beheerd via een configuratiebestand.",
+    "saving": "Opslaan...",
+    "settingsSavedSuccessfully": "Instellingen succesvol opgeslagen",
+    "failedToSaveSettings": "Instellingen opslaan mislukt",
+    "searchSettings": "Instellingen zoeken...",
+    "formHasErrors": "{count, plural, =1 {# fout} other {# fouten}}",
+    "tabs": {
+      "library": {
+        "title": "Bibliotheek",
+
+        "sections": {
+          "library": {
+            "title": "Bibliotheek Instellingen",
+            "description": "Configureer je bibliotheeknaam en web URL",
+            "libraryName": "Bibliotheeknaam",
+            "webUrl": "Web URL"
+          },
+          "autoImport": {
+            "title": "Automatisch Importeren",
+            "description": "Configureer automatische boekimport vanuit een map",
+            "explanation": "Je kan Storyteller instellen om automatisch (audio)boeken te importeren vanuit een specifieke map. Wanneer ingeschakeld, zal Storyteller automatisch nieuwe (audio)boeken in de map importeren die het vindt.",
+            "importPath": "Importpad",
+            "importPathPlaceholder": "/pad/naar/boeken"
+          },
+          "readaloudLocation": {
+            "title": "Readaloud Locatie",
+            "description": "Stel in waar nieuwe readalouds worden opgeslagen wanneer de (audio)boeken niet via de webclient zijn geüpload",
+            "locationType": "Locatietype",
+            "locationTypeSuffix": "In dezelfde map als de EPUB, met een suffix",
+            "locationTypeSiblingFolder": "In dezelfde map als de EPUB, in een map",
+            "locationTypeCustomFolder": "In een specifieke map",
+            "locationTypeInternal": "In de interne Storyteller-map"
+          }
+        }
+      },
+      "transcription": {
+        "title": "Transcriptie",
+        "sections": {
+          "audio": {
+            "title": "Audio Instellingen",
+            "description": "Configureer audio-verwerkingsopties",
+            "maxTrackLength": "Maximale tracklengte",
+            "maxTrackLengthDescription": "Audiotracks langer dan dit worden opgesplitst voordat ze worden verwerkt. Dit kan helpen de hoeveelheid geheugen dat Storyteller gebruikt tijdens verwerking te verminderen.",
+            "maxTrackLength45": "45 minuten",
+            "maxTrackLength1": "1 uur",
+            "maxTrackLength2": "2 uur (standaard)",
+            "maxTrackLength3": "3 uur",
+            "maxTrackLength4": "4 uur",
+            "codec": "Voorkeurs audiocodec",
+            "codecDefault": "Standaard",
+            "codecOpus": "OPUS",
+            "codecMp3": "MP3",
+            "codecAac": "AAC",
+            "bitrate": "Voorkeurs audiobitrate",
+            "bitrateDefault": "Standaard (32 Kb/s)",
+            "quality": "Voorkeurs audiokwaliteit",
+            "qualityDefault": "Standaard (constant 48 kb/s)",
+            "qualityHighQuality": "0 (hoge kwaliteit/lage compressie)",
+            "qualityTransparent": "4 (perceptueel transparant)",
+            "qualityAcceptable": "6 (acceptabele kwaliteit/hoge compressie)"
+          },
+          "transcription": {
+            "title": "Transcriptie Instellingen",
+            "description": "Stel in hoe Storyteller audioboeken naar tekst transcribeert. Standaard wordt transcriptie lokaal uitgevoerd met whisper.cpp. Je kunt ook betaalde externe diensten gebruiken.",
+            "engine": "Transcriptie-engine",
+            "whisperCpp": "whisper.cpp (lokaal)",
+            "whisperServer": "whisper.cpp (server)",
+            "googleCloud": "Google Cloud",
+            "microsoftAzure": "Azure Cognitive Services",
+            "amazonTranscribe": "Amazon Transcribe",
+            "openaiCloud": "OpenAI Cloud Platform",
+            "deepgram": "Deepgram Speech to Text",
+            "whisperThreads": "Turbo mode",
+            "whisperThreadsDescription": "Verander het parallelisatieniveau van het Whisper model. Kan een enorme snelheidsverhoging opleveren indien je GPU-acceleratie gebruikt.",
+            "whisperThreadsNote": "We raden niet om deze waarde en de \"Parallelle audiotrack-transcriptie\" waarde beiden hoger dan 1 te zetten. Kies de één of de ander.",
+            "whisperThreadsWarningPrefix": "Waarschuwing!",
+            "whisperThreadsWarning": "Als je dit hoger dan 1 zet kan dat ten koste gaan van de nauwkeurigheid van de transcriptie. Meld geen bugs als je dit hoger dan 1 zet en je geen consistente Readaloud kunt maken.",
+            "whisperCpuFallback": "CPU gebruik",
+            "whisperCpuFallbackDescription": "Als je een GPU variant hebt geïnstalleerd maar je toch voor één of andere reden alleen je CPU wil gebruiken, kies hier dan een CPU variant.",
+            "whisperCpuFallbackDefault": "GPU (standaard)",
+            "whisperCpuFallbackBlas": "OpenBLAS (geoptimaliseerde CPU)",
+            "whisperCpuFallbackCpu": "CPU",
+            "whisperServerUrl": "Server URL",
+            "whisperServerUrlDescription": "bijv. http://192.168.1.19:8080",
+            "whisperServerApiKey": "API key",
+            "whisperServerApiKeyDescription": "Alleen nodig als je server een API key vereist.",
+            "whisperServerDescription": "Gebruik een externe, zelf-gehoste whisper.cpp server voor transcriptie. Handig als je een krachtige machine hebt om transcriptie te offloaden.",
+            "whisperModel": "Whisper model",
+            "whisperModelDescription": "Het standaard model (tiny) is voldoende voor de meeste Engelse en Nederlandse boeken. Voor boeken met veel ongewone woorden, of in andere talen dan Engels of Nederlands, heb je mogelijk grotere modellen nodig zoals small of medium. Tip: ga direct voor large-v3-turbo, die is bijna net zo snel als medium, maar veel accurater.",
+            "apiKey": "API key *",
+            "subscriptionKey": "Subscription key *",
+            "serviceRegion": "Serviceregio *",
+            "region": "Regio *",
+            "bucketName": "Bucket naam *",
+            "bucketNameDescription": "Amazon Transcribe vereist dat bestanden worden geüpload naar een S3 bucket voordat de transcriptie wordt gestart. Dit is de bucket waarnaar Storyteller bestanden zal uploaden.",
+            "accessKeyId": "Toegangssleutel ID *",
+            "secretAccessKey": "Geheime toegangssleutel *",
+            "organization": "Organisatie (optioneel)",
+            "baseUrl": "Basis URL (optioneel)",
+            "baseUrlDescription": "Je kunt een aangepaste basis-URL gebruiken om naar een OpenAI-compatibele service te verwijzen, zoals een zelf-gehoste speaches-instantie of een externe whisper.cpp HTTP-server.",
+            "modelName": "Modelnaam (optioneel)",
+            "modelNameDescription": "bijv. Systran/faster-distil-whisper-large-v3 voor faster-whisper-server, of whisper-1 voor OpenAI Cloud.",
+            "deepgramModel": "Modelnaam",
+            "deepgramModelDescription": "Kan elk model zijn dat de server ondersteunt, zoals nova-3, nova-2, nova, enhanced, base of whisper. Standaard is nova-3."
+          },
+          "parallelization": {
+            "title": "Parallellisatie Instellingen",
+            "description": "Audio-transcodering is single-threaded, en meer cores toevoegen levert steeds minder op voor het verwerken van één audio-track. Omdat Storyteller audio in meerdere tracks splitst, kan het transcodering en transcriptie parallel uitvoeren.",
+            "parallelTranscodes": "Parallelle audiotrack-transcodering",
+            "parallelTranscodesDescription": "Het transcoderen van één track gebruikt één CPU core",
+            "parallelTranscribes": "Parallelle audiotrack-transcriptie",
+            "parallelTranscribesDescription": "Het transcriberen van één track gebruikt tot 4 CPU cores (bij CPU-gebaseerde transcriptie)"
+          }
+        }
+      },
+
+      "auth": {
+        "title": "Authenticatie",
+        "sections": {
+          "sso": {
+            "title": "Authenticatieproviders",
+            "description": "Configureer externe authenticatieproviders voor single sign-on",
+            "providerType": "Providertype",
+            "providerTypeBuiltIn": "Ingebouwd",
+            "providerTypeCustom": "Aangepast",
+            "provider": "Provider",
+            "name": "Naam *",
+            "type": "Providertype",
+            "typeOidc": "OIDC",
+            "typeOauth": "OAuth",
+            "callbackUrl": "Stel callback-URL in op",
+            "issuer": "Issuer",
+            "issuerRequired": "(vereist voor sommige providers)",
+            "issuerCustomRequired": "*",
+            "issuerPlaceholder": "https://auth.voorbeeld.nl",
+            "clientId": "Client ID *",
+            "clientSecret": "Client secret *",
+            "addProvider": "Provider toevoegen",
+            "allowRegistration": "Registratie toestaan",
+            "allowRegistrationDescription": "Maak automatisch accounts aan voor nieuwe gebruikers van deze provider.",
+            "groupPermissions": "Groepsrechten",
+            "groupPermissionsDescription": "Koppel OIDC-groepen aan rechten. Als dit is ingesteld, wordt toegang geweigerd voor gebruikers die in geen enkele opgegeven groep zitten.",
+            "groupName": "Groepsnaam",
+            "permissions": "Rechten",
+            "adminPreset": "Admin",
+            "basicPreset": "Basis",
+            "addGroup": "Groep toevoegen",
+            "disablePasswordLogin": "Schakel inloggen met wachtwoord uit",
+            "disablePasswordLoginDescriptionEnabled": "Hiermee kunnen gebruikers alleen inloggen via ingesteldeauthenticatieproviders. De meeste OPDS-clients ondersteunen geen OAuth.",
+            "disablePasswordLoginDescriptionDisabled": "Kan alleen worden ingeschakeld als er een authenticatieprovider is met een groep die serverinstellingen mag wijzigen."
+          }
+        }
+      },
+      "upload": {
+        "title": "Upload",
+        "sections": {
+          "upload": {
+            "title": "Upload Instellingen",
+            "description": "Stel de maximale chunk-size in voor grote bestandsuploads",
+            "overriddenWarning": "Je maximale chunk-size wordt overschreven via de environment variable STORYTELLER_MAX_UPLOAD_CHUNK_SIZE. Wijzig die environment variable om de waarde te wijzigen, of verwijder deze om de waarde hier in te stellen.",
+            "enableMaxChunkSize": "Maximale chunk-size inschakelen",
+            "enableMaxChunkSizeDescription": "Schakel dit alleen in als je problemen ondervindt met de maximale chunk-size bij je reverse proxy of hostingprovider.",
+            "maxChunkSize": "Maximale chunk-size (bytes)",
+            "maxChunkSizeDescription": "Standaard is 100MB, wat de maximale upload-size van Cloudflare is."
+          }
+        }
+      },
+      "email": {
+        "title": "E-mail",
+        "sections": {
+          "email": {
+            "title": "E-mail Instellingen",
+            "description": "Configureer SMTP-instellingen voor het verzenden van e-mails (uitnodigingen, wachtwoordherstel, enz.)",
+            "smtpHost": "SMTP host",
+            "smtpPort": "SMTP poort",
+            "smtpFrom": "SMTP afzenderadres",
+            "smtpUsername": "SMTP gebruikersnaam",
+            "smtpPassword": "SMTP wachtwoord",
+            "forceTls": "Forceer TLS",
+            "forceTlsDescription": "Deze optie uitschakelen schakelt TLS niet uit. Standaard gebruikt Storyteller STARTTLS om een TLS-verbinding te onderhandelen. Als je deze optie hebt ingeschakeld en een foutmelding ziet over een onjuiste TLS-versie, probeer deze dan uit te schakelen.",
+            "rejectSelfSigned": "Zelfondertekende TLS-certificaten weigeren"
+          }
+        }
+      },
+      "opds": {
+        "title": "OPDS",
+        "sections": {
+          "opds": {
+            "title": "OPDS Instellingen",
+            "description": "Configureer de OPDS feed voor je bibliotheek. OPDS is een standaard voor het publiceren van e-book catalogussen.",
+            "enabled": "OPDS inschakelen",
+            "enabledDescription": "Schakel de OPDS feed in voor je bibliotheek. Hierdoor kunnen compatibele e-book readers je bibliotheek doorzoeken en boeken downloaden. Je kan de OPDS feed opvragen via {url}.",
+            "pageSize": "Paginagrootte",
+            "pageSizeDescription": "Het aantal boeken per pagina in de OPDS feed. Standaard is 25."
+          }
+        }
+      }
+    }
   },
   "AppSidebar": {
     "home": "Start",

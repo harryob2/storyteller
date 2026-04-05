@@ -9,11 +9,9 @@ import {
   serviceCapabilities,
 } from "../audio/index.ts"
 import { type ConversionMode, getConversionMode } from "../config.ts"
+import { type Language, type RecognitionEngine } from "../constants.ts"
 import type { OpenAICloudSTTOptions } from "../recognition/OpenAICloudSTT.ts"
-import type {
-  Language,
-  WhisperCppOptions,
-} from "../recognition/WhisperCppSTT.ts"
+import type { WhisperCppOptions } from "../recognition/WhisperCppSTT.ts"
 import type { WhisperServerOptions } from "../recognition/WhisperServerSTT.ts"
 import { getShortLanguageCode } from "../utilities/Locale.ts"
 import { extendDeep } from "../utilities/ObjectUtilities.ts"
@@ -260,15 +258,6 @@ export interface RecognitionResult {
   language: string
   timing: TimingSummary
 }
-
-export type RecognitionEngine =
-  | "whisper.cpp"
-  | "whisper-server"
-  | "google-cloud"
-  | "microsoft-azure"
-  | "amazon-transcribe"
-  | "openai-cloud"
-  | "deepgram"
 
 interface BaseRecognitionOptions {
   language: string

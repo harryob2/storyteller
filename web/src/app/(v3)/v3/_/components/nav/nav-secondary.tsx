@@ -1,6 +1,7 @@
 "use client"
 
 import { type TablerIcon } from "@tabler/icons-react"
+import { usePathname } from "next/navigation"
 import * as React from "react"
 
 import {
@@ -34,14 +35,25 @@ export function NavSecondary({
 }: {
   items: NavSecondaryItem[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+  const currentPath = usePathname()
+  const curretPathWithoutV3 = currentPath.replace("/v3", "")
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
         <SidebarMenu className="gap-1">
-          {items.map((item) =>
-            "custom" in item ? (
-              <React.Fragment key={item.key}>{item.custom}</React.Fragment>
-            ) : (
+          {items.map((item) => {
+            if ("custom" in item) {
+              return (
+                <React.Fragment key={item.key}>{item.custom}</React.Fragment>
+              )
+            }
+            const isItemActive =
+              currentPath === item.url ||
+              (!!item.url &&
+                item.url !== "/" &&
+                curretPathWithoutV3.startsWith(item.url))
+
+            return (
               <SidebarMenuItem key={item.title}>
                 {item.onClick ? (
                   <SidebarMenuButton size="sm" onClick={item.onClick}>
@@ -51,6 +63,7 @@ export function NavSecondary({
                 ) : (
                   <SidebarMenuButton
                     size="sm"
+                    isActive={isItemActive}
                     render={
                       <V3Link href={item.url}>
                         <item.icon />
@@ -60,8 +73,8 @@ export function NavSecondary({
                   />
                 )}
               </SidebarMenuItem>
-            ),
-          )}
+            )
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

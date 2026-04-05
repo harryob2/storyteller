@@ -20,6 +20,9 @@ import {
   type BuildVariant,
   MODEL_SIZES,
   type WhisperModel,
+} from "../constants.ts"
+
+import {
   getBinaryDownloadUrl,
   getCompatibleVariants,
   getCoremlModelDownloadUrl,

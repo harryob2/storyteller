@@ -18,8 +18,8 @@ async function execFileAsync(
   return execFilePromisified(cmd, args)
 }
 
-import { type RecognitionEngine } from "../api/Recognition.ts"
 import { type ConversionMode, getConversionMode } from "../config.ts"
+import { type RecognitionEngine } from "../constants.ts"
 
 import {
   type AudioFormat,

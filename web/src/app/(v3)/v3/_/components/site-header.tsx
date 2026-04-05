@@ -1,7 +1,8 @@
 "use client"
 
-import Link from "next/link"
 import { Fragment } from "react"
+
+import { cn } from "@/cn"
 
 import {
   Breadcrumb,
@@ -13,19 +14,27 @@ import {
 } from "@v3/_/components/ui/breadcrumb"
 import { Separator } from "@v3/_/components/ui/separator"
 import { SidebarTrigger } from "@v3/_/components/ui/sidebar"
+import { V3Link } from "@v3/_/components/v3-link"
 
 export function SiteHeader({
   breadcrumbs,
   actions,
+  className,
 }: {
   breadcrumbs: {
     label: string
     url?: string
   }[]
   actions?: React.ReactNode
+  className?: string
 }) {
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+    <header
+      className={cn(
+        "flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)",
+        className,
+      )}
+    >
       <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
         <>
           {/* Mobile only */}
@@ -45,7 +54,9 @@ export function SiteHeader({
                       href={breadcrumb.url}
                       className="truncate"
                       render={
-                        <Link href={breadcrumb.url}>{breadcrumb.label}</Link>
+                        <V3Link href={breadcrumb.url}>
+                          {breadcrumb.label}
+                        </V3Link>
                       }
                     />
                   ) : idx === breadcrumbs.length - 1 ? (

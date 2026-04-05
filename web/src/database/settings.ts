@@ -136,8 +136,31 @@ export async function getSettings(): Promise<Settings> {
 
 export async function updateSettings(settings: Settings) {
   const lockedKeys = getConfigLockedKeys()
+  const existingSettings = await getSettings()
+
   for (const [settingName, value] of Object.entries(settings)) {
     if (lockedKeys.has(settingName as keyof Settings)) continue
+    // if the same, don't update
+    if (
+      JSON.stringify(existingSettings[settingName as keyof Settings]) ===
+      JSON.stringify(value)
+    ) {
+      continue
+    }
+
+    // if it does not exist in existing settings, create it
+    // this is nice, bc it allows us to recover from failed migrations of settings
+    if (!existingSettings[settingName as keyof Settings]) {
+      await db
+        .insertInto("settings")
+        .values({
+          name: settingName as keyof Settings,
+          value: JSON.stringify(value),
+        })
+        .execute()
+      continue
+    }
+
     await db
       .updateTable("settings")
       .set({

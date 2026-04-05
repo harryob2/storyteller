@@ -145,9 +145,7 @@ export async function createConfig(
 
   const additionalProviders = settings.authProviders.map((provider) => {
     if (provider.kind === "built-in") {
-      const providerFactory = Providers[
-        provider.id as keyof typeof Providers
-      ] as
+      const providerFactory = Providers[provider.id] as
         | ((config: OAuthUserConfig<unknown>) => OIDCConfig<unknown>)
         | undefined
       if (!providerFactory) {

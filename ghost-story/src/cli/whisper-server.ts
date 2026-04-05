@@ -3,9 +3,9 @@
 import { spawn } from "node:child_process"
 import { chmodSync, existsSync, statSync } from "node:fs"
 
+import { type BuildVariant, type WhisperModel } from "../constants.ts"
+
 import {
-  type BuildVariant,
-  type WhisperModel,
   getInstallDir,
   getInstalledVariant,
   getModelPath,

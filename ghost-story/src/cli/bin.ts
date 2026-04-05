@@ -12,12 +12,14 @@ import { ensureDirSync } from "fs-extra"
 import { z } from "zod"
 
 import { type RecognitionOptions } from "../api/Recognition.ts"
-
 import {
   BUILD_VARIANTS,
   RECOGNITION_ENGINES,
   WHISPER_CPP_VERSION,
   WHISPER_MODELS,
+} from "../constants.ts"
+
+import {
   getCompatibleVariants,
   getInstalledVariant,
   isValidModel,

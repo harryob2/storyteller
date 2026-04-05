@@ -27,6 +27,219 @@
   "BooksPage": {
     "title": "Books"
   },
+  "SettingsPage": {
+    "title": "Settings",
+    "breadcrumb": "Settings",
+    "saveSettings": "Save settings",
+    "exportSettings": "Export settings as JSON",
+    "lockedSettings": "Some settings are managed via the configuration file and cannot be changed here.",
+    "lockedSettingTooltip": "This setting is locked because it is managed via the settings configuration file.",
+    "saving": "Saving...",
+    "settingsSavedSuccessfully": "Settings saved successfully",
+    "failedToSaveSettings": "Failed to save settings",
+    "searchSettings": "Search settings...",
+    "formHasErrors": "{count, plural, one {# error} other {# errors}}",
+    "tabs": {
+      "library": {
+        "title": "Library",
+
+        "sections": {
+          "library": {
+            "title": "Library Settings",
+            "description": "Configure your library name and web URL. These are used in for instance emails and the OPDS feed.",
+            "libraryName": "Library name",
+            "webUrl": "Web URL"
+          },
+          "autoImport": {
+            "title": "Auto-Import",
+            "description": "Configure automatic book import from a directory",
+            "explanation": "Storyteller can be configured to automatically import book files from a specific directory. When enabled, Storyteller will set up a filesystem watcher for the directory and automatically import any new book files it finds.",
+            "importPath": "Import path",
+            "importPathPlaceholder": "/path/to/books"
+          },
+          "readaloudLocation": {
+            "title": "Readaloud Location",
+            "description": "Configure where new readaloud files are saved when the input files were not uploaded through the web client",
+            "locationType": "Location type",
+            "locationTypeSuffix": "Alongside input with a suffix",
+            "locationTypeSiblingFolder": "Alongside input in a folder",
+            "locationTypeCustomFolder": "In a custom folder",
+            "locationTypeInternal": "In the Storyteller internal folder"
+          }
+        }
+      },
+      "transcription": {
+        "title": "Transcription",
+        "sections": {
+          "audio": {
+            "title": "Audio Settings",
+            "description": "Configure audio processing options",
+            "maxTrackLength": "Maximum processed track length",
+            "maxTrackLengthDescription": "Audio tracks longer than this will be split before transcribing. This can help reduce memory usage during transcription.",
+            "maxTrackLength45": "45 minutes",
+            "maxTrackLength1": "1 hour",
+            "maxTrackLength2": "2 hours (default)",
+            "maxTrackLength3": "3 hours",
+            "maxTrackLength4": "4 hours",
+            "codec": "Preferred audio codec",
+            "codecDefault": "Default",
+            "codecOpus": "OPUS",
+            "codecMp3": "MP3",
+            "codecAac": "AAC",
+            "bitrate": "Preferred audio bitrate",
+            "bitrateDefault": "Default (32 Kb/s)",
+            "quality": "Preferred audio quality",
+            "qualityDefault": "Default (constant 48 kb/s)",
+            "qualityHighQuality": "0 (high quality/low compression)",
+            "qualityTransparent": "4 (perceptually transparent)",
+            "qualityAcceptable": "6 (acceptable quality/high compression)"
+          },
+          "transcription": {
+            "title": "Transcription Settings",
+            "description": "Configure how Storyteller transcribes audiobook narration to text. By default, transcription runs locally using whisper.cpp. You can also use paid third-party services.",
+            "engine": "Transcription engine",
+            "whisperCpp": "whisper.cpp (local)",
+            "whisperServer": "whisper.cpp (remote)",
+            "googleCloud": "Google Cloud",
+            "microsoftAzure": "Azure Cognitive Services",
+            "amazonTranscribe": "Amazon Transcribe",
+            "openaiCloud": "OpenAI Cloud Platform",
+            "deepgram": "Deepgram Speech to Text",
+            "whisperBuild": "Whisper build",
+            "whisperBuildCpu": "CPU",
+            "whisperBuildCublas126": "cuBLAS 12.6 (NVIDIA GPU)",
+            "whisperBuildCublas130": "cuBLAS 13.0 (NVIDIA GPU)",
+            "whisperBuildHipblas": "hipBLAS (AMD GPU)",
+            "whisperBuildDeprecated": "cuBLAS 11.8 is no longer supported. Please update to version 12 or 13.",
+            "whisperModel": "Whisper model",
+            "whisperModelDescription": "The default (tiny) is sufficient for most English books. For books with many uncommon words, or in languages other than English, you may need larger models like small or medium.",
+            "whisperThreads": "Turbo mode",
+            "whisperThreadsDescription": "Change the parallelization level of the Whisper model. Can result in a massive speed increase when doing GPU-accelerated transcription.",
+            "whisperThreadsNote": "It is not recommended to set both this value and the \"Number of audio tracks to transcribe in parallel\" value to a value greater than 1. Choose one or the other.",
+            "whisperThreadsWarningPrefix": "Warning!",
+            "whisperThreadsWarning": "Setting above 1 may reduce transcription accuracy but increases speed by splitting audio into chunks processed in parallel. Do not report bugs if you set this to a value greater than 1 and are not able to get a consistent Readaloud, only if you cannot get a consistent Readaloud even with a value of 1.",
+            "whisperCpuFallback": "CPU fallback",
+            "whisperCpuFallbackDescription": "If you have a GPU variant installed but want to fall back to CPU transcription, select a CPU variant here.",
+            "whisperCpuFallbackDefault": "Use default (GPU if available)",
+            "whisperCpuFallbackBlas": "OpenBLAS (optimized CPU)",
+            "whisperCpuFallbackCpu": "Plain CPU",
+            "whisperServerUrl": "Server URL",
+            "whisperServerUrlDescription": "e.g. http://192.168.1.19:8080 for the local whisper.cpp server.",
+            "whisperServerApiKey": "API key",
+            "whisperServerApiKeyDescription": "Only necessary if your server requires an API key.",
+            "whisperServerDescription": "Use a remote, self-hosted whisper.cpp server for transcription. Useful if you have a powerful machine to offload transcription to.",
+            "apiKey": "API key *",
+            "subscriptionKey": "Subscription key *",
+            "serviceRegion": "Service region *",
+            "region": "Region *",
+            "bucketName": "Bucket name *",
+            "bucketNameDescription": "Amazon Transcribe requires files to be uploaded to an S3 bucket before starting the transcribe job. This is the bucket Storyteller will upload files to.",
+            "accessKeyId": "Access key ID *",
+            "secretAccessKey": "Secret access key *",
+            "organization": "Organization (optional)",
+            "baseUrl": "Base URL (optional)",
+            "baseUrlDescription": "You can use a custom base URL to point at a OpenAI-compatible service like a self-hosted speaches instance or a remote whisper.cpp HTTP server.",
+            "modelName": "Model name (optional)",
+            "modelNameDescription": "e.g. Systran/faster-distil-whisper-large-v3 for faster-whisper-server, or whisper-1 for OpenAI Cloud.",
+            "deepgramModel": "Model name",
+            "deepgramModelDescription": "Can be any model the server supports, like nova-3, nova-2, nova, enhanced, base or whisper. Defaults to nova-3."
+          },
+          "parallelization": {
+            "title": "Parallelization Settings",
+            "description": "Audio transcoding is single-threaded, and Whisper has diminishing returns on multi-core processing for a single file. Since Storyteller splits input audio into multiple tracks, it can run transcoding and transcription in parallel.",
+            "parallelTranscodes": "Parallel audio track transcoding",
+            "parallelTranscodesDescription": "Transcoding one track will use one CPU core",
+            "parallelTranscribes": "Parallel audio track transcription",
+            "parallelTranscribesDescription": "Transcribing one track will use up to 4 CPU cores (when using CPU-based transcription)",
+            "parallelWhisperBuild": "CPU cores for whisper.cpp build",
+            "parallelWhisperBuildDescription": "Whenever the Storyteller container is recreated (e.g. after an update), it will rebuild whisper.cpp. This process can be sped up by dedicating multiple CPU cores."
+          }
+        }
+      },
+
+      "auth": {
+        "title": "Authentication",
+        "sections": {
+          "sso": {
+            "title": "Authentication Providers",
+            "description": "Configure external authentication providers for single sign-on",
+            "providerType": "Provider type",
+            "providerTypeBuiltIn": "Built-in",
+            "providerTypeCustom": "Custom",
+            "provider": "Provider",
+            "name": "Name *",
+            "type": "Provider type",
+            "typeOidc": "OIDC",
+            "typeOauth": "OAuth",
+            "callbackUrl": "Set callback URL to",
+            "issuer": "Issuer",
+            "issuerRequired": "(required for some providers)",
+            "issuerCustomRequired": "*",
+            "issuerPlaceholder": "https://auth.example.com",
+            "clientId": "Client ID *",
+            "clientSecret": "Client secret *",
+            "addProvider": "Add provider",
+            "allowRegistration": "Allow registration",
+            "allowRegistrationDescription": "Automatically create accounts for new users from this provider.",
+            "groupPermissions": "Group permissions",
+            "groupPermissionsDescription": "Map OIDC groups to permissions. If specified, users not in any listed group will be denied access.",
+            "groupName": "Group name",
+            "permissions": "Permissions",
+            "adminPreset": "Admin",
+            "basicPreset": "Basic",
+            "addGroup": "Add group",
+            "disablePasswordLogin": "Disable password login",
+            "disablePasswordLoginDescriptionEnabled": "Only allow login via configured authentication providers. Most OPDS clients do not support OAuth.",
+            "disablePasswordLoginDescriptionDisabled": "Requires an auth provider with a group that can change server settings."
+          }
+        }
+      },
+      "upload": {
+        "title": "Upload",
+        "sections": {
+          "upload": {
+            "title": "Upload Settings",
+            "description": "Configure upload chunk size for large file uploads",
+            "overriddenWarning": "Your max chunk size is overridden via the environment variable STORYTELLER_MAX_UPLOAD_CHUNK_SIZE. Change that environment variable to change the value, or unset it to configure the value here.",
+            "enableMaxChunkSize": "Enable max chunk size",
+            "enableMaxChunkSizeDescription": "Only enable this if you're running into maximum request size issues with your reverse proxy or hosting provider.",
+            "maxChunkSize": "Max chunk size (bytes)",
+            "maxChunkSizeDescription": "Default is 100MB, which is Cloudflare's maximum request size."
+          }
+        }
+      },
+      "email": {
+        "title": "Email",
+        "sections": {
+          "email": {
+            "title": "Email Settings",
+            "description": "Configure SMTP settings for sending emails (invitations, password resets, etc.)",
+            "smtpHost": "SMTP host",
+            "smtpPort": "SMTP port",
+            "smtpFrom": "SMTP from address",
+            "smtpUsername": "SMTP username",
+            "smtpPassword": "SMTP password",
+            "forceTls": "Force TLS",
+            "forceTlsDescription": "Disabling this option does not disable TLS. By default, Storyteller will use STARTTLS to negotiate a TLS connection. If you have this option enabled and see an error about an incorrect TLS version, try disabling it.",
+            "rejectSelfSigned": "Reject self-signed TLS certs"
+          }
+        }
+      },
+      "opds": {
+        "title": "OPDS",
+        "sections": {
+          "opds": {
+            "title": "OPDS Settings",
+            "description": "Configure the OPDS feed for your library. OPDS is a standard for publishing e-book catalogs.",
+            "enabled": "Enable OPDS",
+            "enabledDescription": "Enable the OPDS feed for your library. This allows compatible e-book readers to browse your library and download books. You can access the OPDS feed at {url}.",
+            "pageSize": "Page size",
+            "pageSizeDescription": "The number of books per page in the OPDS feed. Default is 25."
+          }
+        }
+      }
+    }
+  },
   "AppSidebar": {
     "home": "Home",
     "books": "Books",

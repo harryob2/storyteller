@@ -39,6 +39,7 @@ export type NavItem = {
 
 export function NavMain({ items }: { items: NavItem[] }) {
   const location = usePathname()
+  const locationWithoutV3 = location.replace(/v3\/?/, "")
   const { isSectionOpen, setSectionOpen } = useSidebarState()
 
   return (
@@ -51,7 +52,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
                 <CollapsibleNavItem
                   key={item.title}
                   item={item}
-                  currentPath={location}
+                  currentPath={locationWithoutV3}
                   isSectionOpen={isSectionOpen}
                   setSectionOpen={setSectionOpen}
                   allTitle={item.allTitle ?? item.title}
@@ -60,8 +61,8 @@ export function NavMain({ items }: { items: NavItem[] }) {
             }
 
             const isActive =
-              location === item.url ||
-              (item.url !== "/" && location.startsWith(`/v3${item.url}`))
+              locationWithoutV3 === item.url ||
+              (item.url !== "/" && locationWithoutV3.startsWith(item.url))
 
             return (
               <SidebarMenuItem key={item.title}>
@@ -99,7 +100,8 @@ function CollapsibleNavItem({
 }) {
   const isItemActive =
     currentPath === item.url ||
-    (item.url !== "/" && currentPath.startsWith(item.url))
+    (item.url !== "/" && currentPath.startsWith(item.url)) ||
+    (!currentPath && item.url === "/")
 
   const sectionId = `nav-${item.title.toLowerCase()}`
   const isOpen = isSectionOpen(sectionId, isItemActive)
@@ -115,7 +117,11 @@ function CollapsibleNavItem({
         <SidebarMenuItem>
           <CollapsibleTrigger
             render={
-              <SidebarMenuButton tooltip={item.title} isActive={isItemActive}>
+              <SidebarMenuButton
+                size="sm"
+                tooltip={item.title}
+                isActive={isItemActive}
+              >
                 {item.icon && <item.icon />}
                 <span>{item.title}</span>
                 <IconChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

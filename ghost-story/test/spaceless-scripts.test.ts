@@ -1,9 +1,9 @@
 import assert from "node:assert"
 import { describe, it } from "node:test"
 
+import { type Language } from "../src/constants.ts"
 import { createTiming } from "../src/index.ts"
 import {
-  type Language,
   type RecognitionResult,
   recognize,
 } from "../src/recognition/WhisperCppSTT.js"

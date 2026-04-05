@@ -239,3 +239,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@utility scrollbar-hidden {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

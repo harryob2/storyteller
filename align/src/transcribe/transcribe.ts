@@ -7,17 +7,19 @@ import { type Logger } from "pino"
 
 import { isAudioFile } from "@storyteller-platform/audiobook"
 import {
-  type BuildVariant,
-  type RecognitionEngine,
   type TimingAggregator,
   type WhisperCppOptions,
-  type WhisperModel,
   applyLegacyCpuFallback,
   createAggregator,
   ensureWhisperInstalled,
   formatSingleReport,
   recognize,
 } from "@storyteller-platform/ghost-story"
+import {
+  type BuildVariant,
+  type RecognitionEngine,
+  type WhisperModel,
+} from "@storyteller-platform/ghost-story/constants"
 
 type WhisperCpuOverride = "blas" | "cpu" | null
 

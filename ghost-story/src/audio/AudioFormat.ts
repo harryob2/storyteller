@@ -1,6 +1,6 @@
 import { extname } from "node:path"
 
-import { type RecognitionEngine } from "../api/Recognition.ts"
+import { type RECOGNITION_ENGINES } from "../constants.ts"
 
 export type AudioFormat =
   | "unknown"
@@ -15,6 +15,7 @@ export type AudioFormat =
   | "pcm"
   | "mp4"
 
+export type RecognitionEngine = (typeof RECOGNITION_ENGINES)[number]
 export type AudioEncoding = "pcm_s16le" | "flac" | "opus" | "mp3" | "aac"
 
 export interface AudioFormatInfo {

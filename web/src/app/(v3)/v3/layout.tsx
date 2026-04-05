@@ -11,6 +11,7 @@ import { PiPProvider } from "@/components/reader/PipProvider"
 import { env } from "@/env"
 
 import { ThemeProvider } from "@v3/_/components/theme-provider"
+import { Toaster } from "@v3/_/components/ui/sonner"
 
 import "./globals.css"
 
@@ -66,7 +67,7 @@ export default function RootLayout({
           />
         )}
       </head>
-      <body className="h-dvh" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         {!env.ENABLE_V3_FRONTEND ? (
           <div>V3 frontend is not enabled</div>
         ) : (
@@ -80,7 +81,10 @@ export default function RootLayout({
                     enableSystem
                     disableTransitionOnChange
                   >
-                    <NuqsAdapter>{children}</NuqsAdapter>
+                    <NuqsAdapter>
+                      {children}
+                      <Toaster />
+                    </NuqsAdapter>
                   </ThemeProvider>
                 </PiPProvider>
               </AudioProviderRedux>

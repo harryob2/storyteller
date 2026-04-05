@@ -1,46 +1,25 @@
 import { z } from "zod"
 
-import { Languages } from "@storyteller-platform/ghost-story"
+import {
+  LANGUAGES,
+  RECOGNITION_ENGINES,
+  type RecognitionEngine,
+  WHISPER_MODELS,
+} from "@storyteller-platform/ghost-story/constants"
 
-// Enum schemas
-export const TranscriptionEngineSchema = z.enum([
-  "whisper.cpp",
-  "google-cloud",
-  "microsoft-azure",
-  "amazon-transcribe",
-  "openai-cloud",
-  "deepgram",
-  "whisper-server",
-])
-export type TranscriptionEngine = z.infer<typeof TranscriptionEngineSchema>
+import { Providers } from "@/auth/providers"
 
-export const WhisperModelSchema = z.enum([
-  "tiny",
-  "tiny-q5_1",
-  "base",
-  "base.en",
-  "base-q5_1",
-  "small",
-  "small.en",
-  "small-q5_1",
-  "medium",
-  "medium.en",
-  "medium-q5_0",
-  "large-v1",
-  "large-v2",
-  "large-v2-q5_0",
-  "large-v3",
-  "large-v3-q5_0",
-  "large-v3-turbo",
-  "large-v3-turbo-q5_0",
-])
+export const TranscriptionEngineSchema = z.enum(RECOGNITION_ENGINES)
+export type TranscriptionEngine = RecognitionEngine
+
+export const WhisperModelSchema = z.enum(WHISPER_MODELS)
 export type WhisperModel = z.infer<typeof WhisperModelSchema>
 
 export const WhisperCpuFallbackSchema = z.enum(["blas", "cpu"]).nullable()
 export type WhisperCpuFallback = z.infer<typeof WhisperCpuFallbackSchema>
 
 export const WhisperModelOverridesSchema = z.record(
-  z.enum(Languages),
+  z.enum(LANGUAGES),
   WhisperModelSchema,
 )
 export type WhisperModelOverrides = z.infer<typeof WhisperModelOverridesSchema>
@@ -53,14 +32,16 @@ export const ReadaloudLocationTypeSchema = z.enum([
 ])
 export type ReadaloudLocationType = z.infer<typeof ReadaloudLocationTypeSchema>
 
+const optionalUrlSchema = z.union([z.literal(""), z.url()]).optional()
+
 // Auth provider schemas
 export const BuiltInAuthProviderSchema = z.object({
   kind: z.literal("built-in"),
   // Validated against Providers object at runtime in auth/auth.ts:createConfig()
-  id: z.string(),
+  id: z.enum(Object.keys(Providers) as (keyof typeof Providers)[]),
   clientId: z.string(),
   clientSecret: z.string(),
-  issuer: z.string().optional(),
+  issuer: optionalUrlSchema,
 })
 export type BuiltInAuthProvider = z.infer<typeof BuiltInAuthProviderSchema>
 
@@ -70,9 +51,9 @@ export const CustomAuthProviderSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
   type: z.enum(["oidc", "oauth"]),
-  issuer: z.string(),
+  issuer: z.url(),
   allowRegistration: z.boolean().optional(),
-  groupPermissions: z.record(z.string(), z.array(z.string())).optional(),
+  groupPermissions: z.record(z.string(), z.array(z.string())).nullish(),
 })
 export type CustomAuthProvider = z.infer<typeof CustomAuthProviderSchema>
 
@@ -104,7 +85,7 @@ export const SettingsSchema = z.object({
   transcriptionEngine: TranscriptionEngineSchema.nullable(),
   whisperModel: WhisperModelSchema.nullable(),
   whisperThreads: z.number(),
-  whisperModelOverrides: WhisperModelOverridesSchema,
+  // whisperModelOverrides: WhisperModelOverridesSchema,
   autoDetectLanguage: z.boolean(),
   whisperCpuFallback: WhisperCpuFallbackSchema,
   whisperServerUrl: z.string().nullable(),

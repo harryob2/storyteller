@@ -26,6 +26,7 @@ import { IconFlame, IconLock, IconPlus, IconTrash } from "@tabler/icons-react"
 import { useRef, useState } from "react"
 
 import type { Settings } from "@/apiModels"
+import { type Providers } from "@/auth/providers"
 import { ImportPathInput } from "@/components/ImportPathInput"
 import {
   ADMIN_PERMISSIONS,
@@ -86,7 +87,7 @@ export function SettingsForm({
     transcriptionEngine: settings.transcriptionEngine ?? "whisper.cpp",
     whisperModel: settings.whisperModel ?? "tiny",
     whisperThreads: settings.whisperThreads,
-    whisperModelOverrides: settings.whisperModelOverrides,
+    // whisperModelOverrides: settings.whisperModelOverrides,
     autoDetectLanguage: settings.autoDetectLanguage,
     whisperCpuFallback: settings.whisperCpuFallback,
     whisperServerUrl: settings.whisperServerUrl ?? "",
@@ -883,7 +884,7 @@ export function SettingsForm({
                   onChange={(value) => {
                     form.replaceListItem("authProviders", i, {
                       ...provider,
-                      id: value,
+                      id: value as keyof typeof Providers,
                     })
                   }}
                 />

@@ -33,7 +33,8 @@
     "./recognition": "./src/api/Recognition.ts",
     "./vad": "./src/api/VoiceActivityDetection.ts",
     "./server": "./src/cli/whisper-server.ts",
-    "./bin": "./src/cli/bin.ts"
+    "./bin": "./src/cli/bin.ts",
+    "./constants": "./src/constants.ts"
   },
   "scripts": {
     "build": "tsup",

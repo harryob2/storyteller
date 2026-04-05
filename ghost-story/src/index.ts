@@ -1,6 +1,5 @@
 export {
   type AudioInput,
-  type RecognitionEngine,
   type RecognitionOptions,
   type RecognitionResult,
   recognitionEngines,
@@ -39,11 +38,6 @@ export {
   toReadStream,
 } from "./audio/index.ts"
 export {
-  BUILD_VARIANTS,
-  type BuildVariant,
-  WHISPER_CPP_VERSION,
-  WHISPER_MODELS,
-  type WhisperModel,
   applyLegacyCpuFallback,
   detectPlatform,
   getConfiguredVariant,
@@ -80,8 +74,6 @@ export {
   recognize as recognizeOpenAI,
 } from "./recognition/OpenAICloudSTT.ts"
 export {
-  type Language,
-  Languages,
   type RecognitionResult as WhisperCppResult,
   type WhisperCppModelId,
   type WhisperCppOptions,
@@ -122,4 +114,4 @@ export {
   segmentsToTimeline,
 } from "./vad/Silero.ts"
 
-export { RECOGNITION_ENGINES } from "./cli/config.ts"
+// export * from "./constants.ts"
