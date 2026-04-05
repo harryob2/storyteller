@@ -199,6 +199,7 @@ async function main() {
         parsed.audiobook,
         {
           granularity: parsed.granularity,
+          textRef: parsed.textRef,
           primaryLocale: parsed.language,
           logger,
           ...(!parsed.noProgress &&
@@ -307,38 +308,48 @@ async function main() {
         transcribeTiming.print()
       }
 
-      logger.info("Marking up EPUB...")
-
-      startProgressBar()
-
       const markedup =
-        parsed.markedup ??
-        join(os.tmpdir(), `stalign-markedup-${randomUUID()}.epub`)
+        parsed.textRef === "id-fragment"
+          ? parsed.markedup ??
+            join(os.tmpdir(), `stalign-markedup-${randomUUID()}.epub`)
+          : parsed.epub
 
-      if (!parsed.markedup) {
-        stack.defer(() => {
-          rmSync(markedup, { recursive: true, force: true })
+      if (parsed.textRef === "id-fragment") {
+        logger.info("Marking up EPUB...")
+
+        startProgressBar()
+
+        const markedup =
+          parsed.markedup ??
+          join(os.tmpdir(), `stalign-markedup-${randomUUID()}.epub`)
+
+        if (!parsed.markedup) {
+          stack.defer(() => {
+            rmSync(markedup, { recursive: true, force: true })
+          })
+        }
+
+        const markupTiming = await markup(parsed.epub, markedup, {
+          granularity: parsed.granularity,
+          primaryLocale,
+          logger,
+          ...(!parsed.noProgress &&
+            parsed.logLevel === "silent" && {
+              onProgress: (progress) => {
+                progressBar.update(Math.floor(progress * 100))
+              },
+            }),
         })
-      }
 
-      const markupTiming = await markup(parsed.epub, markedup, {
-        granularity: parsed.granularity,
-        primaryLocale,
-        logger,
-        ...(!parsed.noProgress &&
-          parsed.logLevel === "silent" && {
-            onProgress: (progress) => {
-              progressBar.update(Math.floor(progress * 100))
-            },
-          }),
-      })
+        resetProgressBar()
 
-      resetProgressBar()
+        logger.info(`Markup complete, marked up EPUB saved to ${markedup}.`)
 
-      logger.info(`Markup complete, marked up EPUB saved to ${markedup}.`)
-
-      if (parsed.time) {
-        markupTiming.print()
+        if (parsed.time) {
+          markupTiming.print()
+        }
+      } else {
+        logger.info("Skipping markup, text-range-type set to text-fragment")
       }
 
       logger.info("Aligning EPUB with audiobook...")
@@ -352,6 +363,7 @@ async function main() {
         processedAudio,
         {
           granularity: parsed.granularity,
+          textRef: parsed.textRef,
           primaryLocale,
           logger,
           ...(!parsed.noProgress &&

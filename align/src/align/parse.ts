@@ -1,4 +1,5 @@
 import {
+  choice,
   command,
   constant,
   merge,
@@ -6,6 +7,7 @@ import {
   object,
   option,
   optional,
+  withDefault,
 } from "@optique/core"
 import { path } from "@optique/run/valueparser"
 
@@ -23,6 +25,12 @@ export const alignParser = object("Alignment", {
   epub: option(
     "--epub",
     path({ mustExist: true, type: "file", extensions: [".epub"] }),
+  ),
+  textRef: withDefault(
+    option("--text-ref", choice(["id-fragment", "text-fragment"]), {
+      description: message`Whether to use text fragments rather than element id fragments to identify text ranges in generated media overlays.`,
+    }),
+    "id-fragment",
   ),
   reports: optional(option("--reports", path({ type: "directory" }))),
 })

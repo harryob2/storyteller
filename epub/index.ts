@@ -532,6 +532,22 @@ export class Epub {
     )
   }
 
+  async copy(path?: string): Promise<Epub> {
+    const extractPath = join(
+      tmpdir(),
+      `storyteller-platform-epub-${randomUUID()}.epub`,
+    )
+
+    try {
+      await cp(this.extractPath, extractPath, { recursive: true })
+    } catch (error) {
+      rmSync(extractPath, { force: true, recursive: true })
+      throw error
+    }
+
+    return new Epub(extractPath, path)
+  }
+
   private async removeEntry(href: string) {
     const rootfile = await this.getRootfile()
 

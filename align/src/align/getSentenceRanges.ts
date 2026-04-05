@@ -30,6 +30,7 @@ export type SentenceRange = {
 
 export type WordRange = {
   id: number
+  chapterId: string
   sentenceId: number
   start: number
   end: number
@@ -363,6 +364,7 @@ export async function getSentenceRanges(
             if (start && end) {
               perSentenceWordRanges.push({
                 id: k,
+                chapterId,
                 sentenceId: j + chapterSentenceIndex + slice[0],
                 start: end.audiofile === start.audiofile ? start.start : 0,
                 audiofile: end.audiofile,
