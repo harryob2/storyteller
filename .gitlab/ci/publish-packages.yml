@@ -551,6 +551,7 @@ release-align:
   script:
     - export PATH="$HOME/.cargo/bin:$PATH"
     - rustup target add "$TARGET"
+    - export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=gcc
     - yarn workspace @storyteller-platform/okmain napi build --target "$TARGET"
       --platform --release
   artifacts:
