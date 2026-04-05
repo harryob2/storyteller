@@ -1,0 +1,23 @@
+[package]
+name = "okmain-napi"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+rust-version = "1.93"
+publish = false
+description = "napi-rs bindings for okmain dominant color extraction"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+okmain = { version = "0.2.0", features = ["image"] }
+napi = "3"
+napi-derive = "3"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+lto = "fat"

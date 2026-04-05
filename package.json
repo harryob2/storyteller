@@ -13,7 +13,8 @@
     "path/",
     "config/*",
     "ghost-story/",
-    "align/"
+    "align/",
+    "okmain/"
   ],
   "scripts": {
     "build:docs": "yarn workspace @storyteller-platform/docs build",

@@ -500,3 +500,262 @@ release-align:
       links:
         - name: "NPM package for @storyteller-platform/align"
           url: "https://npmjs.com/package/@storyteller-platform/align"
+
+.okmain-tag-rules:
+  rules:
+    - if:
+        '$CI_COMMIT_TAG =~
+        /^okmain-v?\d+\.\d+\.\d+(?:-(?:alpha|beta|rc|experimental|dev|test|preview)(?:\.\d+)?)?$/'
+
+.okmain-build-linux-base:
+  stage: build-base
+  image: node:24
+  extends: .okmain-tag-rules
+  before_script:
+    - apt update
+    - DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
+      build-essential curl pkg-config
+    - npm i -g corepack
+    - corepack enable
+    - corepack prepare yarn@4.12.0 --activate
+    - curl https://sh.rustup.rs -sSf --output rustup.sh
+    - sh rustup.sh -y --profile minimal --default-toolchain stable
+    - rm rustup.sh
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustc --version
+    - yarn workspaces focus @storyteller-platform/okmain
+  script:
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup target add "$TARGET"
+    - yarn workspace @storyteller-platform/okmain napi build --target "$TARGET"
+      --platform --release
+  artifacts:
+    paths:
+      - okmain/okmain.*.node
+
+.okmain-build-macos-base:
+  stage: build-base
+  extends: .okmain-tag-rules
+  tags: [saas-macos-medium-m1]
+  before_script:
+    - brew install curl
+    - export NVM_DIR="$HOME/.nvm"
+    - source "$NVM_DIR/nvm.sh"
+    - nvm install 24
+    - nvm use 24
+    - nvm alias default 24
+    - npm i -g corepack
+    - corepack enable
+    - corepack prepare yarn@4.12.0 --activate
+    - curl https://sh.rustup.rs -sSf --output rustup.sh
+    - sh rustup.sh -y --profile minimal --default-toolchain stable
+    - rm rustup.sh
+    - source "$HOME/.cargo/env"
+    - rustc --version
+    - yarn workspaces focus @storyteller-platform/okmain
+  script:
+    - source "$HOME/.cargo/env"
+    - rustup target add "$TARGET"
+    - yarn workspace @storyteller-platform/okmain napi build --target "$TARGET"
+      --platform --release
+  artifacts:
+    paths:
+      - okmain/okmain.*.node
+
+.okmain-build-windows-base:
+  stage: build-base
+  extends: .okmain-tag-rules
+  tags: [saas-windows-medium-amd64]
+  before_script:
+    - |
+      if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+        if (Get-Command choco -ErrorAction SilentlyContinue) {
+          choco install -y nodejs-lts
+        } else {
+          throw "node is required on the windows runner"
+        }
+      }
+      npm i -g corepack
+      corepack enable
+      corepack prepare yarn@4.12.0 --activate
+      node --version
+      yarn --version
+    - |
+      if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
+        Invoke-WebRequest -Uri "https://win.rustup.rs/x86_64" -OutFile "$env:TEMP\rustup-init.exe"
+        & "$env:TEMP\rustup-init.exe" -y --profile minimal --default-toolchain stable-msvc
+      }
+      $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+      rustup default stable-msvc
+      rustc --version
+    - yarn workspaces focus @storyteller-platform/okmain
+  script:
+    - |
+      $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+      $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+      if (-not (Test-Path $vswhere)) {
+        throw "vswhere not found"
+      }
+      $vsInstall = & $vswhere -latest -products * `
+        -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+        -property installationPath
+      if (-not $vsInstall) {
+        throw "visual studio build tools not found"
+      }
+      $vcArch = if ($env:TARGET -eq "aarch64-pc-windows-msvc") { "x64_arm64" } else { "x64" }
+      cmd /c """$vsInstall\VC\Auxiliary\Build\vcvarsall.bat"" $vcArch && set" |
+        ForEach-Object {
+          if ($_ -match '^([^=]+)=(.*)$') {
+            [System.Environment]::SetEnvironmentVariable($Matches[1], $Matches[2])
+          }
+        }
+      rustup target add $env:TARGET
+      yarn workspace @storyteller-platform/okmain napi build --target $env:TARGET --platform --release
+  artifacts:
+    paths:
+      - okmain/okmain.*.node
+
+build-okmain-linux-x64-gnu:
+  extends: .okmain-build-linux-base
+  tags: [saas-linux-large-amd64]
+  variables:
+    TARGET: x86_64-unknown-linux-gnu
+
+build-okmain-linux-arm64-gnu:
+  extends: .okmain-build-linux-base
+  tags: [saas-linux-large-arm64]
+  variables:
+    TARGET: aarch64-unknown-linux-gnu
+
+build-okmain-linux-x64-musl:
+  extends: .okmain-build-linux-base
+  tags: [saas-linux-large-amd64]
+  variables:
+    TARGET: x86_64-unknown-linux-musl
+
+build-okmain-linux-arm64-musl:
+  extends: .okmain-build-linux-base
+  tags: [saas-linux-large-arm64]
+  variables:
+    TARGET: aarch64-unknown-linux-musl
+
+build-okmain-darwin-arm64:
+  extends: .okmain-build-macos-base
+  variables:
+    TARGET: aarch64-apple-darwin
+
+build-okmain-darwin-x64:
+  extends: .okmain-build-macos-base
+  variables:
+    TARGET: x86_64-apple-darwin
+
+build-okmain-win32-x64-msvc:
+  extends: .okmain-build-windows-base
+  variables:
+    TARGET: x86_64-pc-windows-msvc
+
+# no windows arm64, fals with some obtuse linking error
+# = note: some arguments are omitted. use `--verbose` to show all linker arguments
+# = note: LINK : fatal error LNK1104: cannot open file 'msvcrt.lib'
+# build-okmain-win32-arm64-msvc:
+#   extends: .okmain-build-windows-base
+#   variables:
+#     TARGET: aarch64-pc-windows-msvc
+
+publish-okmain:
+  image: node:24
+  stage: publish
+  extends: .okmain-tag-rules
+  # all artifacts should be downloaded to the woking dir
+  needs:
+    - job: build-okmain-linux-x64-gnu
+      artifacts: true
+    - job: build-okmain-linux-arm64-gnu
+      artifacts: true
+    - job: build-okmain-darwin-arm64
+      artifacts: true
+    - job: build-okmain-darwin-x64
+      artifacts: true
+    - job: build-okmain-win32-x64-msvc
+      artifacts: true
+    - job: build-okmain-linux-x64-musl
+      artifacts: true
+    - job: build-okmain-linux-arm64-musl
+      artifacts: true
+    # - job: build-okmain-win32-arm64-msvc
+    #   artifacts: true
+  id_tokens:
+    NPM_ID_TOKEN:
+      aud: "npm:registry.npmjs.org"
+  variables:
+    GITLAB: "true"
+  script:
+    - TAG=${CI_COMMIT_TAG##*-}
+    - |
+      case "$TAG" in
+        alpha*) TAG="alpha" ;;
+        beta*) TAG="beta" ;;
+        rc*) TAG="rc" ;;
+        experimental*) TAG="experimental" ;;
+        dev*) TAG="dev" ;;
+        test*) TAG="test" ;;
+        preview*) TAG="preview" ;;
+        *) TAG="latest" ;;
+      esac
+    - npm i -g corepack
+    - corepack enable
+    - corepack prepare yarn@4.12.0 --activate
+    - apt update
+    - DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
+      build-essential curl pkg-config
+    - curl https://sh.rustup.rs -sSf --output rustup.sh
+    - sh rustup.sh -y --profile minimal --default-toolchain stable
+    - rm rustup.sh
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - yarn workspaces focus @storyteller-platform/okmain
+    - ls -lah okmain/*.node
+    - mkdir -p okmain/artifacts
+    - mv okmain/*.node okmain/artifacts/
+    - yarn workspace @storyteller-platform/okmain napi create-npm-dirs # creates the npm dirs
+    - yarn workspace @storyteller-platform/okmain napi artifacts # moves all the artifacts to the correct npm dir
+    - ls -latR okmain/npm
+    - yarn workspace @storyteller-platform/okmain npm publish --tag="$TAG"
+      --access public
+
+prerelease-okmain:
+  stage: prerelease
+  image: alpine:latest
+  extends: .okmain-tag-rules
+  script:
+    - apk add curl jq
+    - version=$(echo $CI_COMMIT_TAG | sed -r 's/okmain-//')
+    - package=$(echo $CI_COMMIT_TAG | sed -r 's/-v\d+\.\d+\.\d+.*$//')
+    - 'from_sha=$(curl -H "PRIVATE-TOKEN: $CI_API_TOKEN"
+      "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases" | jq -r "first(.[] |
+      select(.tag_name | startswith(\"$package\")) | .commit.short_id)")'
+    - to_sha=$CI_COMMIT_SHORT_SHA
+    - 'curl -H "PRIVATE-TOKEN: $CI_API_TOKEN"
+      "$CI_API_V4_URL/projects/$CI_PROJECT_ID/repository/changelog?version=${version}&from=${from_sha}&to=${to_sha}&trailer=Changelog-okmain"
+      | jq -r .notes > release_notes.md'
+  artifacts:
+    paths:
+      - release_notes.md
+
+release-okmain:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: prerelease-okmain
+      artifacts: true
+  extends: .okmain-tag-rules
+  script:
+    - echo "Creating release for $CI_COMMIT_TAG"
+  release:
+    name: "Release $CI_COMMIT_TAG"
+    description: release_notes.md
+    tag_name: "$CI_COMMIT_TAG"
+    ref: "$CI_COMMIT_SHA"
+    assets:
+      links:
+        - name: "NPM package for @storyteller-platform/okmain"
+          url: "https://npmjs.com/package/@storyteller-platform/okmain"

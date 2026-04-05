@@ -1,0 +1,61 @@
+{
+  "name": "@storyteller-platform/okmain",
+  "version": "0.1.0",
+  "description": "Dominant color extraction from images using okmain",
+  "author": "Thomas F. K. Jorna",
+  "license": "MIT",
+  "keywords": [
+    "color",
+    "image",
+    "palette",
+    "dominant-color",
+    "oklab"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/storyteller-platform/storyteller"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/storyteller-platform/storyteller"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.d.ts",
+    "index.js"
+  ],
+  "napi": {
+    "binaryName": "okmain",
+    "targets": [
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-linux-musl",
+      "x86_64-pc-windows-msvc"
+    ]
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "build": "napi build --dts-cache --platform --release",
+    "build:debug": "napi build --platform",
+    "test": "node --test __test__/index.test.ts",
+    "test:update-snapshots": "node --test --test-update-snapshots __test__/index.test.ts ",
+    "prepublishOnly": "napi prepublish -t npm",
+    "prepack": "yarn build $FLAGS"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.2.0",
+    "@oxc-node/core": "^0.0.35",
+    "chalk": "^5.6.2",
+    "typescript": "^6.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "yarn@4.13.0"
+}
